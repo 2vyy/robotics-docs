@@ -294,88 +294,132 @@ launch_tui() {
         tui_reset
     }
 
-    render_left_panel() {
-        draw_box "$BOX_ROW" "$L_COL" "$BOX_H" "$L_W" "Components"
+    render_panel() {
+        build_flat_list
+        local n_rows=${#FLAT_LIST[@]}
+        local BOX_H=$(( n_rows + 3 ))   # +1 header row, +1 blank separator, +1 hint row
+        local inner_w=$(( BOX_W - 2 ))
+        local val_w=$(( inner_w - 16 ))  # space for "  > Label  [value]"
 
-        local i
-        for (( i = 0; i < n_comp; i++ )); do
-            local row=$(( BOX_ROW + 1 + i ))
-            tui_move "$row" $(( L_COL + 2 ))
+        draw_box "$BOX_ROW" "$BOX_COL" "$BOX_H" "$BOX_W" "Components"
 
-            local is_sel=$(( panel == 0 && i == l_cursor ))
-            local is_on=${COMP_ON[$i]}
+        local flat_idx
+        local screen_row=$(( BOX_ROW + 1 ))
 
-            if (( is_sel )); then tui_reverse; fi
+        for (( flat_idx = 0; flat_idx < n_rows; flat_idx++ )); do
+            local entry="${FLAT_LIST[$flat_idx]}"
+            local is_sel=$(( flat_idx == cursor ))
+            tui_move "$screen_row" $(( BOX_COL + 2 ))
 
-            # checkbox
-            if (( is_on )); then
-                tui_fg 32; printf '[✔]'; tui_reset
-                if (( is_sel )); then tui_reverse; fi
-            else
-                tui_fg 90; printf '[ ]'; tui_reset
-                if (( is_sel )); then tui_reverse; fi
-            fi
-
-            printf ' '
-            local label; label=$(fit "${COMP_LABELS[$i]}" 20)
-            if (( is_on )); then tui_bold; else tui_dim; fi
-            if (( is_sel )); then tui_reverse; fi
-            printf '%s' "$label"
-            tui_reset
-
-            # description on same line (dim)
-            if (( is_sel )); then
-                tui_move "$row" $(( L_COL + 28 ))
-                tui_fg 33
-                fit "  ${COMP_DESC[$i]}" $(( L_W - 29 ))
-                tui_reset
-            fi
-        done
-
-        # hint
-        local hint_row=$(( BOX_ROW + BOX_H - 1 ))
-        tui_move "$hint_row" $(( L_COL + 2 ))
-        tui_fg 90
-        printf 'SPACE toggle  ↑↓ move  ←→ switch panels'
-        tui_reset
-    }
-
-    render_right_panel() {
-        draw_box "$BOX_ROW" "$R_COL" "$BOX_H" "$R_W" "Advanced Options"
-
-        local i
-        for (( i = 0; i < n_adv; i++ )); do
-            local row=$(( BOX_ROW + 1 + i ))
-            local is_sel=$(( panel == 1 && i == r_cursor ))
-            local val="${ADV_VALS[$i]}"
-            local val_w=$(( R_W - 18 ))
-
-            tui_move "$row" $(( R_COL + 2 ))
-
-            tui_fg 36; printf '%s' "${ADV_LABELS[$i]}"; tui_reset
-            printf ' '
-
-            if (( is_sel )); then
-                if $editing; then
-                    tui_fg 33; tui_bold
-                    printf '['; fit "$val" $(( val_w - 2 )); printf ']▌'
+            # ── Install button row ────────────────────────────────────────────
+            if [[ "$entry" == "install" ]]; then
+                if (( is_sel )); then
+                    tui_fg 32; tui_bold; tui_reverse
+                    printf '[ Install ]'
                     tui_reset
                 else
-                    tui_reverse
+                    tui_fg 32; tui_bold
+                    printf '[ Install ]'
+                    tui_reset
+                fi
+                (( screen_row++ ))
+                continue
+            fi
+
+            # ── Component row ─────────────────────────────────────────────────
+            if [[ "$entry" == comp:* ]]; then
+                local ci="${entry#comp:}"
+                local is_on=${COMP_ON[$ci]}
+                local has_opts=${COMP_OPT_COUNT[$ci]}
+                local is_exp=${expanded[$ci]}
+
+                if (( is_sel )); then tui_reverse; fi
+
+                # checkbox
+                if (( is_on )); then
+                    tui_fg 32; printf '[+]'; tui_reset
+                else
+                    tui_fg 90; printf '[ ]'; tui_reset
+                fi
+                if (( is_sel )); then tui_reverse; fi
+
+                printf ' '
+                local label; label=$(fit "${COMP_LABELS[$ci]}" 24)
+                if (( is_on )); then tui_bold; else tui_dim; fi
+                if (( is_sel )); then tui_reverse; fi
+                printf '%s' "$label"
+                tui_reset
+
+                # expand indicator — right-aligned, only when ON and has opts
+                if (( is_on && has_opts > 0 )); then
+                    tui_move "$screen_row" $(( BOX_COL + BOX_W - 3 ))
+                    if (( is_exp )); then
+                        tui_fg 220; printf 'v'; tui_reset
+                    else
+                        tui_fg 240; printf '>'; tui_reset
+                    fi
+                fi
+
+                (( screen_row++ ))
+                continue
+            fi
+
+            # ── Sub-option row ────────────────────────────────────────────────
+            if [[ "$entry" == opt:* ]]; then
+                local oi="${entry#opt:}"
+                local val="${OPT_VALS[$oi]}"
+
+                if (( is_sel )); then
+                    tui_fg 220; tui_bold
+                    printf '  > %s ' "${OPT_LABELS[$oi]}"
+                    tui_reset
+                    tui_fg 33; tui_bold
+                    if $editing; then
+                        printf '['; fit "$val" $(( val_w - 3 )); printf ']>'
+                    else
+                        printf '['; fit "$val" $(( val_w - 2 )); printf ']'
+                    fi
+                    tui_reset
+                else
+                    tui_fg 240
+                    printf '  > %s ' "${OPT_LABELS[$oi]}"
+                    tui_reset
+                    tui_fg 37
                     fit "$val" "$val_w"
                     tui_reset
                 fi
-            else
-                tui_fg 37
-                fit "$val" "$val_w"
-                tui_reset
+
+                (( screen_row++ ))
+                continue
             fi
         done
 
-        local hint_row=$(( BOX_ROW + BOX_H - 1 ))
-        tui_move "$hint_row" $(( R_COL + 2 ))
+        # blank separator row
+        tui_move "$screen_row" $(( BOX_COL + 2 ))
+        (( screen_row++ ))
+
+        # hint row — context-sensitive
+        tui_move "$screen_row" $(( BOX_COL + 2 ))
         tui_fg 90
-        printf 'ENTER edit  ↑↓ move  ←→ switch panels'
+        local cur_entry="${FLAT_LIST[$cursor]}"
+        if [[ "$cur_entry" == opt:* ]]; then
+            printf 'ENTER edit  ↑↓ move  < back'
+        else
+            # Compute whether all expandable ON components are currently expanded
+            local _all_exp=true
+            local _ci
+            for (( _ci = 0; _ci < n_comp; _ci++ )); do
+                if (( COMP_ON[_ci] && COMP_OPT_COUNT[_ci] > 0 && !expanded[_ci] )); then
+                    _all_exp=false
+                    break
+                fi
+            done
+            if $_all_exp; then
+                printf 'SPACE toggle  ↑↓ move  > expand  E collapse all  ENTER install'
+            else
+                printf 'SPACE toggle  ↑↓ move  > expand  E expand all   ENTER install'
+            fi
+        fi
         tui_reset
     }
 
