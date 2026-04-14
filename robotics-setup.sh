@@ -244,8 +244,6 @@ launch_tui() {
     local panel=0           # 0 = checklist  1 = advanced
     local l_cursor=0        # row index in left panel
     local r_cursor=0        # row index in right panel
-    local n_comp=${#COMP_KEYS[@]}
-    local n_adv=${#ADV_LABELS[@]}
     local editing=false     # are we in inline text-edit mode?
     local done=false
 
