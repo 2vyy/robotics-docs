@@ -421,27 +421,92 @@ launch_tui() {
         tui_reset
     }
 
-    render_status() {
-        tui_move "$STATUS_ROW" 1
-        tui_reset
+    render_confirm() {
+        # ── Disk space check ──────────────────────────────────────────────────
+        local avail_kb
+        avail_kb=$(df -k "$HOME" 2>/dev/null | awk 'NR==2{print $4}' || echo 0)
 
-        local on_list=""
+        local total_kb=0
+        local total_min=0
         local i
         for (( i = 0; i < n_comp; i++ )); do
-            if (( COMP_ON[i] )); then on_list+="${COMP_LABELS[$i]}, "; fi
+            if (( COMP_ON[i] )); then
+                (( total_kb  += COMP_SIZE_KB[i]  ))
+                (( total_min += COMP_TIME_MIN[i] ))
+            fi
         done
-        on_list="${on_list%, }"
 
-        tui_fg 90
-        printf '  Will install: '
-        tui_fg 32; tui_bold
-        printf '%s' "${on_list:-none}"
-        tui_reset
+        local space_ok=true
+        (( avail_kb < total_kb )) && space_ok=false
 
-        tui_move $(( STATUS_ROW + 1 )) 1
-        tui_fg 90
-        printf '  [ENTER] Confirm & Install    [q / ESC] Cancel'
-        tui_reset
+        # ── Format available space for display ────────────────────────────────
+        local avail_gb
+        avail_gb=$(awk "BEGIN{printf \"%.1f\", $avail_kb/1048576}")
+
+        # ── Draw overlay ──────────────────────────────────────────────────────
+        local ow=46   # overlay width
+        local oh=$(( n_comp + 9 ))
+        local start_row=$(( (TERM_ROWS - oh) / 2 ))
+        local start_col=$(( (TERM_COLS - ow) / 2 ))
+
+        draw_box "$start_row" "$start_col" "$oh" "$ow" "Confirm Installation"
+
+        local r=$(( start_row + 1 ))
+        local c=$(( start_col + 2 ))
+
+        tui_move "$r" "$c"; tui_fg 90; printf 'The following will be installed:'; tui_reset
+        (( r++ ))
+        tui_move "$r" "$c"   # blank line
+        (( r++ ))
+
+        for (( i = 0; i < n_comp; i++ )); do
+            if (( COMP_ON[i] )); then
+                tui_move "$r" "$c"
+                tui_fg 32; printf '[+] '; tui_reset
+                printf '%-26s' "${COMP_LABELS[$i]}"
+                tui_fg 90; printf '%s' "${COMP_SIZE_LABEL[$i]}"; tui_reset
+                (( r++ ))
+            fi
+        done
+
+        (( r++ ))   # blank line
+
+        # total storage
+        local total_gb
+        total_gb=$(awk "BEGIN{printf \"%.1f\", $total_kb/1048576}")
+        tui_move "$r" "$c"
+        tui_fg 90; printf 'Total storage:  '; tui_reset
+        tui_bold; printf '~%s GB' "$total_gb"; tui_reset
+        (( r++ ))
+
+        # available space — red if insufficient
+        tui_move "$r" "$c"
+        tui_fg 90; printf 'Available:      '; tui_reset
+        if $space_ok; then
+            tui_fg 32; printf '%s GB    OK' "$avail_gb"; tui_reset
+        else
+            tui_fg 31; tui_bold; printf '%s GB    !! Insufficient disk space' "$avail_gb"; tui_reset
+        fi
+        (( r++ ))
+
+        # estimated time
+        tui_move "$r" "$c"
+        tui_fg 90; printf 'Est. time:      '; tui_reset
+        tui_bold; printf '~%d min' "$total_min"; tui_reset
+        (( r++ ))
+        (( r++ ))   # blank line
+
+        # buttons
+        tui_move "$r" "$c"
+        if $space_ok; then
+            tui_fg 32; tui_bold; tui_reverse; printf ' Y / ENTER  Confirm '; tui_reset
+            printf '   '
+            tui_fg 90; printf 'ESC / N  Go back'; tui_reset
+        else
+            tui_fg 90; printf '(free up space to continue)'; tui_reset
+            printf '   '
+            tui_fg 90; printf 'ESC / N  Go back'; tui_reset
+        fi
     }
 
     # ── Inline text editor for an advanced field ───────────────────────────────
