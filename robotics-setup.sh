@@ -261,6 +261,25 @@ launch_tui() {
     }
     trap '_tui_cleanup' RETURN INT TERM EXIT
 
+    # ── Flat list builder — call before every render ───────────────────────────
+    # Populates FLAT_LIST with entries: "comp:N", "opt:N", or "install"
+    build_flat_list() {
+        FLAT_LIST=()
+        local i j
+        for (( i = 0; i < n_comp; i++ )); do
+            FLAT_LIST+=("comp:$i")
+            local count=${COMP_OPT_COUNT[$i]}
+            local start=${COMP_OPT_START[$i]}
+            # Only show sub-options when component is ON and expanded
+            if (( COMP_ON[i] && expanded[i] && count > 0 )); then
+                for (( j = start; j < start + count; j++ )); do
+                    FLAT_LIST+=("opt:$j")
+                done
+            fi
+        done
+        FLAT_LIST+=("install")
+    }
+
     # ── Render helpers ─────────────────────────────────────────────────────────
     render_header() {
         tui_clear
