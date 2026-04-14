@@ -231,21 +231,20 @@ launch_tui() {
     TERM_ROWS=$(stty size 2>/dev/null | cut -d' ' -f1 || echo 24)
     TERM_COLS=$(stty size 2>/dev/null | cut -d' ' -f2 || echo 80)
 
-    # Two panels side by side
-    local BOX_H=12
-    local L_COL=2
-    local L_W=44
-    local R_COL=$(( L_COL + L_W + 1 ))
-    local R_W=$(( TERM_COLS - R_COL - 1 ))
+    local BOX_COL=2
+    local BOX_W=$(( TERM_COLS - 3 ))
     local BOX_ROW=4
-    local STATUS_ROW=$(( BOX_ROW + BOX_H + 1 ))
 
     # ── State ─────────────────────────────────────────────────────────────────
-    local panel=0           # 0 = checklist  1 = advanced
-    local l_cursor=0        # row index in left panel
-    local r_cursor=0        # row index in right panel
-    local editing=false     # are we in inline text-edit mode?
+    local -a expanded=(0 0 0 0 0)   # per-component expanded flag
+    local all_expanded=false
+    local cursor=0                   # index into FLAT_LIST
+    local editing=false
+    local confirm_open=false
     local done=false
+
+    # FLAT_LIST: built by build_flat_list(); entries are "comp:N", "opt:N", "install"
+    local -a FLAT_LIST=()
 
     # ── Terminal setup ─────────────────────────────────────────────────────────
     local OLD_STTY
