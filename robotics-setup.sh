@@ -233,11 +233,11 @@ launch_tui() {
 
     local BOX_COL=2
     local BOX_W=$(( TERM_COLS - 3 ))
-    local BOX_ROW=4
+    local BOX_ROW=4      # row 1=title, row 2=divider, row 3=blank, panel starts row 4
 
     # ── State ─────────────────────────────────────────────────────────────────
-    local -a expanded=(0 0 0 0 0)   # per-component expanded flag
-    local all_expanded=false
+    local -a expanded=()
+    local _ei; for (( _ei = 0; _ei < n_comp; _ei++ )); do expanded+=(0); done
     local cursor=0                   # index into FLAT_LIST
     local editing=false
     local confirm_open=false
