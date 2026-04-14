@@ -341,9 +341,7 @@ launch_tui() {
                 else
                     tui_fg 90; printf '[ ]'; tui_reset
                 fi
-                if (( is_sel )); then tui_reverse; fi
-
-                printf ' '
+                if (( is_sel )); then tui_reverse; printf ' '; else printf ' '; fi
                 local label; label=$(fit "${COMP_LABELS[$ci]}" 24)
                 if (( is_on )); then tui_bold; else tui_dim; fi
                 if (( is_sel )); then tui_reverse; fi
@@ -352,7 +350,7 @@ launch_tui() {
 
                 # expand indicator — right-aligned, only when ON and has opts
                 if (( is_on && has_opts > 0 )); then
-                    tui_move "$screen_row" $(( BOX_COL + BOX_W - 3 ))
+                    tui_move "$screen_row" $(( BOX_COL + BOX_W - 2 ))
                     if (( is_exp )); then
                         tui_fg 220; printf 'v'; tui_reset
                     else
