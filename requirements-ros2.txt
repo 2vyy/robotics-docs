@@ -1,0 +1,30 @@
+# ROS 2 Robotics Wiki - Core Python Dependencies
+# Optimized for ROS 2 Jazzy on Ubuntu 24.04
+
+# Scientific Computing
+numpy
+scipy
+matplotlib
+pandas
+
+# Computer Vision
+opencv-python-headless
+
+# Robotics Math & Transforms
+pyyaml
+transforms3d
+pyquaternion
+
+# MAVLink & PX4 Integration
+mavsdk
+pymavlink
+
+# Build Tools & Generators
+# NOTE: empy must be version 3.x for PX4 compatibility
+empy==3.3.4
+jinja2
+toml
+jsonschema
+future
+kconfiglib
+packaging
