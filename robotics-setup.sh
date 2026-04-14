@@ -201,35 +201,30 @@ fit() {
 # Main TUI entry point
 # ═══════════════════════════════════════════════════════════════════════════════
 launch_tui() {
-    # ── Component definitions: parallel arrays ────────────────────────────────
-    local -a COMP_KEYS=( ROS       GAZEBO            PX4                    PIP                        BASHRC )
-    local -a COMP_LABELS=( \
-        "ROS 2 Jazzy Desktop" \
-        "Gazebo Harmonic"     \
-        "PX4 SITL + uXRCE-DDS" \
-        "Python venv + packages" \
-        "Modify ~/.bashrc"    )
-    local -a COMP_DESC=( \
-        "Core middleware, rviz2, rqt, dev tools" \
-        "Physics simulator + ros_gz bridge" \
-        "Flight stack, SITL build, DDS bridge" \
-        "Isolated venv, requirements install" \
-        "Auto-source ROS & venv on login" )
-    local -a COMP_ON=(1 1 1 1 1)   # default all ON
+    # ── Component definitions ─────────────────────────────────────────────────
+    local -a COMP_KEYS=(   ROS                    GAZEBO             PX4                      PIP                      BASHRC           )
+    local -a COMP_LABELS=( "ROS 2 Jazzy Desktop"  "Gazebo Harmonic"  "PX4 SITL + uXRCE-DDS"  "Python venv + packages" "Modify ~/.bashrc" )
+    local -a COMP_ON=(     1                       1                  1                        1                        1                )
 
-    # ── Advanced-options: parallel arrays ─────────────────────────────────────
-    local -a ADV_LABELS=( \
-        "ROS distro  " \
-        "Agent ver   " \
-        "PX4 dir     " \
-        "venv dir    " \
-        "Workspace   " )
-    local -a ADV_VALS=( \
-        "$ROS_DISTRO" \
-        "$UXRCE_AGENT_VERSION" \
-        "$PX4_DIR" \
-        "$VENV_DIR" \
-        "$WS_DIR" )
+    # Per-component option counts and start indices into OPT_* arrays
+    # COMP_OPT_COUNT=0 means no sub-options (no indicator shown)
+    local -a COMP_OPT_COUNT=( 2  0  2  1  0 )   # ROS GAZEBO PX4 PIP BASHRC
+    local -a COMP_OPT_START=( 0 -1  2  4 -1 )   # index into OPT_* arrays (-1 = none)
+
+    # Flat option arrays (ordered: ROS opts first, then PX4, then PIP)
+    local -a OPT_LABELS=( "ROS distro" "Workspace " "Agent ver " "PX4 dir   " "venv dir  " )
+    local -a OPT_VALS=(   "$ROS_DISTRO"  "$WS_DIR"  "$UXRCE_AGENT_VERSION"  "$PX4_DIR"  "$VENV_DIR" )
+    # Which component index does each option belong to?
+    local -a OPT_COMP=(   0             0            2                        2           3           )
+
+    # Per-component storage estimates (placeholder — update with accurate values)
+    # KB values used for disk space check; display labels shown in confirmation overlay
+    local -a COMP_SIZE_KB=(    4200000   1800000    2100000   300000   0     )
+    local -a COMP_SIZE_LABEL=( "~4.2 GB" "~1.8 GB" "~2.1 GB" "~0.3 GB" "--" )
+    local -a COMP_TIME_MIN=(   15        5          10        2         0    )
+
+    local n_comp=${#COMP_KEYS[@]}
+    local n_opt=${#OPT_LABELS[@]}
 
     # ── Layout constants ───────────────────────────────────────────────────────
     local TERM_ROWS TERM_COLS
