@@ -932,11 +932,28 @@ install_uv() {
         export PATH="$HOME/.local/bin:$PATH"
         bashrc_append 'export PATH="$HOME/.local/bin:$PATH"'
     fi
+
+    # Ensure safe defaults for uv: avoid installing extremely new releases (supply-chain safety)
+    if [[ ! -f "$HOME/.config/uv/uv.toml" ]]; then
+        log_info "Creating global uv config with 7-day cooldown for new packages."
+        run_cmd mkdir -p "$HOME/.config/uv"
+        run_cmd bash -lc 'cat > "$HOME/.config/uv/uv.toml" <<EOF
+[settings]
+exclude-newer = "7 days"
+EOF'
+        log_info "Created global uv config at $HOME/.config/uv/uv.toml"
+    else
+        log_info "Global uv config already exists at $HOME/.config/uv/uv.toml"
+    fi
 }
 
 install_pip() {
     log_step "Step 5: Python Virtual Environment (uv)"
     install_uv
+
+    # Apply a reasonable cooldown to avoid pulling super-new releases (supply-chain safety)
+    export UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER:-7 days}"
+    bashrc_append 'export UV_EXCLUDE_NEWER="7 days"'
 
     if [[ ! -d "${VENV_DIR}" ]]; then
         log_info "Creating virtual environment at ${VENV_DIR}..."
