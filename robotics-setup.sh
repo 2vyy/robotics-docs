@@ -214,7 +214,7 @@ launch_tui() {
     # Flat option arrays (ordered: ROS opts first, then PX4, then PIP)
     local -a OPT_LABELS=( "ROS distro" "Workspace " "Agent ver " "PX4 dir   " "venv dir  " )
     local -a OPT_VALS=(   "$ROS_DISTRO"  "$WS_DIR"  "$UXRCE_AGENT_VERSION"  "$PX4_DIR"  "$VENV_DIR" )
-    # Which component index does each option belong to?
+    # Which component index owns each option — must stay consistent with COMP_OPT_START/COMP_OPT_COUNT
     local -a OPT_COMP=(   0             0            2                        2           3           )
 
     # Per-component storage estimates (placeholder — update with accurate values)
