@@ -226,7 +226,6 @@ launch_tui() {
     local -a COMP_TIME_MIN=(   15        5          10        2         0    )
 
     local n_comp=${#COMP_KEYS[@]}
-    local n_opt=${#OPT_LABELS[@]}
 
     # ── Layout constants ───────────────────────────────────────────────────────
     local TERM_ROWS TERM_COLS
@@ -299,7 +298,7 @@ launch_tui() {
     render_panel() {
         build_flat_list
         local n_rows=${#FLAT_LIST[@]}
-        local BOX_H=$(( n_rows + 3 ))   # +1 header row, +1 blank separator, +1 hint row
+        local BOX_H=$(( n_rows + 4 ))   # n_rows content rows + blank separator + hint + 2 borders
         local inner_w=$(( BOX_W - 2 ))
         local val_w=$(( inner_w - 16 ))  # space for "  > Label  [value]"
 
@@ -446,8 +445,8 @@ launch_tui() {
         avail_gb=$(awk "BEGIN{printf \"%.1f\", $avail_kb/1048576}")
 
         # ── Draw overlay ──────────────────────────────────────────────────────
-        local ow=46   # overlay width
-        local oh=$(( n_comp + 9 ))
+        local ow=58   # overlay width — must fit "!! Insufficient disk space" line
+        local oh=$(( n_comp + 10 ))
         local start_row=$(( (TERM_ROWS - oh) / 2 ))
         local start_col=$(( (TERM_COLS - ow) / 2 ))
 
@@ -512,9 +511,11 @@ launch_tui() {
     }
 
     # ── Inline text editor for an advanced field ───────────────────────────────
+    # ── Inline text editor for a sub-option field ─────────────────────────────
     edit_field() {
         local oi=$1
         local val="${OPT_VALS[$oi]}"
+        local orig_val="$val"   # snapshot for discard on ESC
         editing=true
 
         while true; do
@@ -527,7 +528,8 @@ launch_tui() {
                     editing=false
                     break ;;
                 ESC|QUIT)
-                    editing=false   # discard changes
+                    OPT_VALS[$oi]="$orig_val"   # restore original
+                    editing=false
                     break ;;
                 *)
                     if [[ "$KEY" == $'\x7f' || "$KEY" == $'\b' ]]; then
