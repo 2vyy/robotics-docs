@@ -104,10 +104,12 @@ UBUNTU_CODENAME="noble"
 # ─── Pure-Bash TUI (no whiptail / dialog / tput dependency) ──────────────────
 #
 #  Controls:
-#   ↑ / ↓       move cursor
-#   SPACE        toggle checkbox  (checklist panel)
-#   ENTER        edit field value  (advanced panel) / confirm on summary screen
-#   LEFT/RIGHT   switch between panels
+#   ↑ / ↓       move cursor through all visible rows
+#   →            expand component sub-options
+#   ←            collapse component / jump to parent from sub-option
+#   SPACE        toggle component on/off
+#   ENTER        edit sub-option field / open install confirmation
+#   E            expand all / collapse all
 #   q / ESC      quit / cancel
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -659,19 +661,20 @@ launch_tui() {
     local idx
     for (( idx = 0; idx < n_comp; idx++ )); do
         case "${COMP_KEYS[$idx]}" in
-            ROS)    INSTALL_ROS=$(( COMP_ON[idx] == 1 && echo true || echo false)) ;;
-            GAZEBO) INSTALL_GAZEBO=$(( COMP_ON[idx] == 1 && echo true || echo false)) ;;
-            PX4)    INSTALL_PX4=$(( COMP_ON[idx] == 1 && echo true || echo false)) ;;
-            PIP)    INSTALL_PIP=$(( COMP_ON[idx] == 1 && echo true || echo false)) ;;
-            BASHRC) MODIFY_BASHRC=$(( COMP_ON[idx] == 1 && echo true || echo false)) ;;
+            ROS)    INSTALL_ROS=$(    [[ ${COMP_ON[$idx]} == 1 ]] && echo true || echo false) ;;
+            GAZEBO) INSTALL_GAZEBO=$( [[ ${COMP_ON[$idx]} == 1 ]] && echo true || echo false) ;;
+            PX4)    INSTALL_PX4=$(    [[ ${COMP_ON[$idx]} == 1 ]] && echo true || echo false) ;;
+            PIP)    INSTALL_PIP=$(    [[ ${COMP_ON[$idx]} == 1 ]] && echo true || echo false) ;;
+            BASHRC) MODIFY_BASHRC=$(  [[ ${COMP_ON[$idx]} == 1 ]] && echo true || echo false) ;;
         esac
     done
 
-    ROS_DISTRO="${ADV_VALS[0]}"
-    UXRCE_AGENT_VERSION="${ADV_VALS[1]}"
-    PX4_DIR="${ADV_VALS[2]}"
-    VENV_DIR="${ADV_VALS[3]}"
-    WS_DIR="${ADV_VALS[4]}"
+    # OPT_VALS order: ROS distro(0), Workspace(1), Agent ver(2), PX4 dir(3), venv dir(4)
+    ROS_DISTRO="${OPT_VALS[0]}"
+    WS_DIR="${OPT_VALS[1]}"
+    UXRCE_AGENT_VERSION="${OPT_VALS[2]}"
+    PX4_DIR="${OPT_VALS[3]}"
+    VENV_DIR="${OPT_VALS[4]}"
 }
 
 # ─── Argument parsing ────────────────────────────────────────────────────────
