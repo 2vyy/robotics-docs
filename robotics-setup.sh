@@ -543,43 +543,111 @@ launch_tui() {
     # ── Main event loop ────────────────────────────────────────────────────────
     while ! $done; do
         render_header
-        render_left_panel
-        render_right_panel
-        render_status
+        render_panel
+
+        if $confirm_open; then
+            render_confirm
+            read_key
+            case "$KEY" in
+                ENTER|y|Y)
+                    local avail_kb
+                    avail_kb=$(df -k "$HOME" 2>/dev/null | awk 'NR==2{print $4}' || echo 0)
+                    local total_kb=0
+                    local _i
+                    for (( _i = 0; _i < n_comp; _i++ )); do
+                        (( COMP_ON[_i] )) && (( total_kb += COMP_SIZE_KB[_i] ))
+                    done
+                    if (( avail_kb >= total_kb )); then
+                        done=true
+                    fi
+                    ;;
+                ESC|QUIT|n|N)
+                    confirm_open=false
+                    ;;
+            esac
+            continue
+        fi
 
         read_key
+        build_flat_list
+        local n_rows=${#FLAT_LIST[@]}
+        local cur_entry="${FLAT_LIST[$cursor]}"
+
         case "$KEY" in
             QUIT|ESC)
                 _tui_cleanup
                 exit 0
                 ;;
-            LEFT|RIGHT)
-                panel=$(( 1 - panel ))   # flip between 0 and 1
-                ;;
+
             UP)
-                if (( panel == 0 )); then
-                    (( l_cursor > 0 )) && (( l_cursor-- ))
-                else
-                    (( r_cursor > 0 )) && (( r_cursor-- ))
-                fi
+                (( cursor > 0 )) && (( cursor-- ))
                 ;;
+
             DOWN)
-                if (( panel == 0 )); then
-                    (( l_cursor < n_comp - 1 )) && (( l_cursor++ ))
-                else
-                    (( r_cursor < n_adv - 1 )) && (( r_cursor++ ))
+                (( cursor < n_rows - 1 )) && (( cursor++ ))
+                ;;
+
+            RIGHT)
+                if [[ "$cur_entry" == comp:* ]]; then
+                    local ci="${cur_entry#comp:}"
+                    if (( COMP_ON[ci] && COMP_OPT_COUNT[ci] > 0 && !expanded[ci] )); then
+                        expanded[$ci]=1
+                    fi
                 fi
                 ;;
+
+            LEFT)
+                if [[ "$cur_entry" == opt:* ]]; then
+                    local oi="${cur_entry#opt:}"
+                    local parent_comp="${OPT_COMP[$oi]}"
+                    local fi
+                    for (( fi = 0; fi < n_rows; fi++ )); do
+                        if [[ "${FLAT_LIST[$fi]}" == "comp:$parent_comp" ]]; then
+                            cursor=$fi
+                            break
+                        fi
+                    done
+                elif [[ "$cur_entry" == comp:* ]]; then
+                    local ci="${cur_entry#comp:}"
+                    expanded[$ci]=0
+                fi
+                ;;
+
             SPACE)
-                if (( panel == 0 )); then
-                    COMP_ON[$l_cursor]=$(( 1 - COMP_ON[l_cursor] ))
+                if [[ "$cur_entry" == comp:* ]]; then
+                    local ci="${cur_entry#comp:}"
+                    COMP_ON[$ci]=$(( 1 - COMP_ON[ci] ))
+                    (( !COMP_ON[ci] )) && expanded[$ci]=0
+                    build_flat_list
+                    n_rows=${#FLAT_LIST[@]}
+                    (( cursor >= n_rows )) && cursor=$(( n_rows - 1 ))
                 fi
                 ;;
+
             ENTER)
-                if (( panel == 1 )); then
-                    edit_field "$r_cursor"
+                if [[ "$cur_entry" == opt:* ]]; then
+                    local oi="${cur_entry#opt:}"
+                    edit_field "$oi"
+                elif [[ "$cur_entry" == "install" ]]; then
+                    confirm_open=true
+                fi
+                ;;
+
+            e|E)
+                local _all_exp=true
+                local _ci
+                for (( _ci = 0; _ci < n_comp; _ci++ )); do
+                    if (( COMP_ON[_ci] && COMP_OPT_COUNT[_ci] > 0 && !expanded[_ci] )); then
+                        _all_exp=false
+                        break
+                    fi
+                done
+                if $_all_exp; then
+                    for (( _ci = 0; _ci < n_comp; _ci++ )); do expanded[$_ci]=0; done
                 else
-                    done=true   # confirm from left panel too
+                    for (( _ci = 0; _ci < n_comp; _ci++ )); do
+                        (( COMP_ON[_ci] && COMP_OPT_COUNT[_ci] > 0 )) && expanded[$_ci]=1
+                    done
                 fi
                 ;;
         esac
