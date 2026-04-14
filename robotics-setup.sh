@@ -511,30 +511,29 @@ launch_tui() {
 
     # ── Inline text editor for an advanced field ───────────────────────────────
     edit_field() {
-        local idx=$1
-        local val="${ADV_VALS[$idx]}"
+        local oi=$1
+        local val="${OPT_VALS[$oi]}"
         editing=true
-        render_right_panel
 
         while true; do
+            render_header
+            render_panel
             read_key
             case "$KEY" in
                 ENTER|TAB)
-                    ADV_VALS[$idx]="$val"
+                    OPT_VALS[$oi]="$val"
                     editing=false
                     break ;;
                 ESC|QUIT)
-                    editing=false   # discard
+                    editing=false   # discard changes
                     break ;;
                 *)
-                    # Backspace
                     if [[ "$KEY" == $'\x7f' || "$KEY" == $'\b' ]]; then
                         val="${val%?}"
                     elif [[ ${#KEY} -eq 1 ]]; then
                         val+="$KEY"
                     fi
-                    ADV_VALS[$idx]="$val"
-                    render_right_panel
+                    OPT_VALS[$oi]="$val"
                     ;;
             esac
         done
