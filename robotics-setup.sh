@@ -90,6 +90,7 @@ INSTALL_GAZEBO=true
 INSTALL_PX4=true
 INSTALL_PIP=true
 MODIFY_BASHRC=true
+SET_PIP_ALIAS=false
 REBUILD=false
 DRY_RUN=false
 
@@ -708,6 +709,7 @@ else
             --px4-dir)    PX4_DIR="$2"; shift ;;
             --venv-dir)   VENV_DIR="$2"; shift ;;
             --ws-dir)     WS_DIR="$2"; shift ;;
+            --pip-alias)  SET_PIP_ALIAS=true ;;
             --help|-h)
                 sed -n '/^# ====/,/^# ====/p' "$0" | sed 's/^# //' | sed 's/^#//'
                 exit 0
@@ -955,22 +957,52 @@ install_pip() {
     export UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER:-7 days}"
     bashrc_append 'export UV_EXCLUDE_NEWER="7 days"'
 
+    log_info "Setting up Python dependencies with uv pip"
+
     if [[ ! -d "${VENV_DIR}" ]]; then
         log_info "Creating virtual environment at ${VENV_DIR}..."
         # --seed adds pip inside the venv for any tooling that calls pip directly
         # --system-site-packages ensures ROS system packages are visible
         run_cmd uv venv --seed --system-site-packages --python python3 "${VENV_DIR}"
     fi
-    
+
+    # Best-effort: ensure pip-audit is available inside the venv for vulnerability scanning
+    log_info "Installing pip-audit into venv for vulnerability scanning (best-effort)..."
+    run_cmd uv pip install --python "${VENV_DIR}/bin/python" --upgrade pip-audit || log_warn "Failed to install pip-audit; continuing without audit"
+
     if [[ -f "${SCRIPT_DIR}/requirements-ros2.txt" ]]; then
         log_info "Installing pip packages from requirements-ros2.txt using uv..."
-        # uv pip install is a high-performance drop-in for pip install -r
-        run_cmd uv pip install --python "${VENV_DIR}/bin/python" \
-            -r "${SCRIPT_DIR}/requirements-ros2.txt"
+
+        # Try guarded installation with hashes first for reproducibility/security
+        if run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv pip install --python "${VENV_DIR}/bin/python" --require-hashes -r "${SCRIPT_DIR}/requirements-ros2.txt"; then
+            log_info "Installed packages using --require-hashes"
+        else
+            log_warn "--require-hashes install failed (requirements may not be hashed). Falling back to unhashed install."
+            run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv pip install --python "${VENV_DIR}/bin/python" -r "${SCRIPT_DIR}/requirements-ros2.txt"
+        fi
+
+        # Run vulnerability scan (best-effort) using pip-audit installed into the venv
+        if [[ -x "${VENV_DIR}/bin/pip-audit" ]]; then
+            log_info "Running pip-audit to scan installed packages (best-effort)..."
+            if ! run_cmd "${VENV_DIR}/bin/pip-audit"; then
+                log_warn "pip-audit reported issues or failed. Please review the above output."
+            else
+                log_info "pip-audit completed with no findings."
+            fi
+        else
+            log_warn "pip-audit not available; skipping vulnerability scan."
+        fi
+
     else
         log_warn "requirements-ros2.txt not found! Skipping pip packages."
     fi
-    
+
+    # Optional: make 'pip' point to 'uv pip' for interactive usage (opt-in)
+    if $SET_PIP_ALIAS && $MODIFY_BASHRC && ! $DRY_RUN; then
+        bashrc_append 'alias pip="uv pip"'
+        log_info "Added alias pip='uv pip' to ~/.bashrc (enabled via --pip-alias)"
+    fi
+
     bashrc_append "source ${VENV_DIR}/bin/activate"
 }
 
