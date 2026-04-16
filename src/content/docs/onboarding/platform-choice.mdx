@@ -1,0 +1,78 @@
+---
+title: Step 1 - Choose your platform
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+We use **Ubuntu 24.04** because it is the primary target for ROS 2 Jazzy. Using this platform ensures that you can install tools via `apt` instead of compiling them from source, which saves hours of setup time and reduces maintenance issues.
+
+### Why Ubuntu 24.04 and ROS 2 Jazzy?
+
+- **Native Package Support**: All tools (ROS, Gazebo, PX4) have official binaries for Ubuntu 24.04.
+- **Hardware Compatibility**: GPU acceleration for simulators is well-supported.
+- **Documentation**: Community resources and official guides assume a native Linux environment.
+
+### Setup options
+
+If you are not running Ubuntu 24.04, choose the option that best fits your current machine:
+
+| Current OS | Recommended approach |
+|---|---|
+| Ubuntu 24.04 | Native — continue to [Step 2](./ros-install). |
+| Other Linux | Use Distrobox to run an Ubuntu 24.04 container. |
+| Windows | Use WSL2 or dual-boot Ubuntu 24.04. |
+| macOS | Use a VM (UTM/Parallels) or dual-boot Ubuntu. |
+
+<Tabs groupId="platform-choice" defaultValue="native">
+<TabItem label="Native Ubuntu" value="native">
+
+### Native Ubuntu
+
+If you are running Ubuntu 24.04, proceed to **[Step 2](./ros-install)**.
+
+If you are on an older version or need a clean install:
+1. Download the Ubuntu 24.04 LTS ISO from [ubuntu.com](https://ubuntu.com/download/desktop).
+2. Use [balenaEtcher](https://etcher.balena.io/) to write it to a USB drive.
+3. Boot from the USB and select "Erase disk and install Ubuntu".
+</TabItem>
+
+<TabItem label="Other Linux" value="other-linux">
+
+### Other Linux (Distrobox)
+
+Distrobox lets you run Ubuntu 24.04 inside your current Linux distribution without a full reinstall.
+
+1. Install [Distrobox](https://distrobox.it).
+2. Create and enter an Ubuntu 24.04 container:
+   ```bash
+   distrobox create -i ubuntu:24.04 -n jazzy
+   distrobox enter jazzy
+   ```
+3. Run the installation steps from within this container.
+</TabItem>
+
+<TabItem label="Windows" value="windows">
+
+### Windows (WSL2 or Dual-boot)
+
+#### WSL2 (Easiest)
+WSL2 allows running Ubuntu 24.04 alongside Windows.
+1. Run `wsl --install -d Ubuntu-24.04` in PowerShell.
+2. Open the Ubuntu terminal from your Start menu and follow the installation steps.
+
+#### Dual-boot (Best for performance)
+If you require full GPU acceleration for complex simulations, dual-booting Ubuntu 24.04 on your hardware is recommended.
+</TabItem>
+
+<TabItem label="macOS" value="macos">
+
+### macOS
+
+Performance varies by hardware.
+
+- **VM (Recommended)**: Use [UTM](https://mac.getutm.app/) to create an Ubuntu 24.04 VM.
+- **Dual-boot (Intel only)**: For Intel Macs, you can partition your drive and install Ubuntu 24.04 to run natively.
+</TabItem>
+</Tabs>
