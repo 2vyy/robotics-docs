@@ -29,7 +29,11 @@ pnpm-debug.log*
 # local Claude Code config (personal permissions, not for sharing)
 .claude/
 
-docs/superpowers
+# Superpowers planning (local specs/plans; not part of published wiki)
+docs/superpowers/
+
+# VS Code / Cursor workspace (machine-local or accidental; use team docs if you need shared snippets)
+.vscode/
 
 # --- Local tooling / caches (do not commit) ---
 # Incremental code-review graph (regenerated locally)
