@@ -22,11 +22,13 @@ for __a in "$@"; do
 	fi
 done
 
+# shellcheck source=lib/00-common.sh
+source "${LIB}/00-common.sh"
+robotics_require_ubuntu_24_04 || exit 1
+
 LOGFILE="${ROBOTICS_LOG_FILE:-$HOME/ros2-jazzy-install.log}"
 exec > >(tee -a "$LOGFILE") 2>&1
 
-# shellcheck source=lib/00-common.sh
-source "${LIB}/00-common.sh"
 # shellcheck source=lib/08-phase-verify.sh
 source "${LIB}/08-phase-verify.sh"
 trap 'robotics_on_exit' EXIT

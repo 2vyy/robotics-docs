@@ -15,14 +15,10 @@ verify_phase_preflight() {
 		log_error "apt-get not found"
 		exit 1
 	}
-	local vid=""
+	robotics_require_ubuntu_24_04 || exit 1
 	# shellcheck source=/dev/null
-	vid="$(source /etc/os-release 2>/dev/null && echo "${VERSION_ID:-}")"
-	[[ "$vid" == "24.04" ]] || {
-		log_error "Expected Ubuntu VERSION_ID 24.04, got '${vid:-}'"
-		exit 1
-	}
-	log_success "Pre-flight OK (non-root, apt-get, Ubuntu ${vid})"
+	source /etc/os-release
+	log_success "Pre-flight OK (non-root, apt-get, Ubuntu ${VERSION_ID:-} ${VERSION_CODENAME:-})"
 }
 
 verify_phase_system_base() {

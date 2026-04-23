@@ -1,5 +1,29 @@
 # install/lib/00-common.sh — logging, traps, and shared helpers (sourced by main.sh).
 
+# Hard gate: official Ubuntu 24.04 LTS (Noble) only — not Debian, WSL without Ubuntu, Pop!, etc.
+robotics_require_ubuntu_24_04() {
+	if [[ ! -r /etc/os-release ]]; then
+		log_error "Missing or unreadable /etc/os-release; cannot verify Ubuntu 24.04."
+		return 1
+	fi
+	# shellcheck source=/dev/null
+	source /etc/os-release
+	local id="${ID:-}" vid="${VERSION_ID:-}" codename="${VERSION_CODENAME:-}"
+	if [[ "$id" != "ubuntu" ]]; then
+		log_error "This installer requires official Ubuntu (ID=ubuntu). Detected ID='${id}'."
+		return 1
+	fi
+	if [[ "$vid" != "24.04" ]]; then
+		log_error "This installer requires Ubuntu 24.04 LTS. Detected VERSION_ID='${vid}'."
+		return 1
+	fi
+	if [[ "$codename" != "noble" ]]; then
+		log_error "This installer requires Ubuntu 24.04 Noble. Detected VERSION_CODENAME='${codename}' (expected noble)."
+		return 1
+	fi
+	return 0
+}
+
 robotics_on_exit() {
 	local exit_code=$?
 	if [[ $exit_code -ne 0 ]]; then

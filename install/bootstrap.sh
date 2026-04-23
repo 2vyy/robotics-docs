@@ -18,6 +18,18 @@ if ! command -v curl >/dev/null 2>&1; then
 	exit 1
 fi
 
+if [[ ! -r /etc/os-release ]]; then
+	echo "[ERROR] Missing /etc/os-release; this bootstrap requires Ubuntu 24.04." >&2
+	exit 1
+fi
+# shellcheck source=/dev/null
+source /etc/os-release
+if [[ "${ID:-}" != "ubuntu" ]] || [[ "${VERSION_ID:-}" != "24.04" ]] || [[ "${VERSION_CODENAME:-}" != "noble" ]]; then
+	echo "[ERROR] This installer requires official Ubuntu 24.04 LTS (Noble)." >&2
+	echo "[ERROR] Detected ID='${ID:-}', VERSION_ID='${VERSION_ID:-}', VERSION_CODENAME='${VERSION_CODENAME:-}'." >&2
+	exit 1
+fi
+
 REF="${ROBOTICS_INSTALL_REF:-main}"
 REPO="${ROBOTICS_INSTALL_REPO:-2vyy/robotics-docs}"
 BASE="https://raw.githubusercontent.com/${REPO}/${REF}/install"

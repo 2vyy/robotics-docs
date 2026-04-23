@@ -25,12 +25,6 @@ robotics_run_preflight() {
 	RAM_TOTAL=$(free -h | awk '/^Mem:/ {print $2}')
 	log_info "Total RAM: ${RAM_TOTAL} (use 'free -h' for details) ✓"
 
-	if [[ -f /etc/os-release ]]; then
-		# shellcheck source=/dev/null
-		source /etc/os-release
-		if [[ "${VERSION_ID:-}" != "24.04" ]]; then
-			log_error "This script requires Ubuntu 24.04 (Noble Numbat)."
-			exit 1
-		fi
-	fi
+	# OS gate is enforced at startup in main.sh (robotics_require_ubuntu_24_04); re-assert if this file is ever sourced alone.
+	robotics_require_ubuntu_24_04 || exit 1
 }

@@ -4,7 +4,7 @@ This document is the contract for the modular installer (`install/main.sh` and `
 
 ## Environment
 
-- Target: **online Ubuntu 24.04** (Noble), amd64 or arm64.
+- Target: **online official Ubuntu 24.04 LTS (Noble)** only: `/etc/os-release` must have `ID=ubuntu`, `VERSION_ID=24.04`, and `VERSION_CODENAME=noble`. Enforced in `bootstrap.sh` and `main.sh` before any downloads or `tee` logging.
 - **Not** run as root (no `sudo` on the script itself; the script invokes `sudo` for apt).
 - Idempotent: safe to re-run with partial installs.
 - Before tagging a ref for a class, run a smoke test on a **clean** 24.04 VM (partial-install re-runs are harder to simulate automatically).
