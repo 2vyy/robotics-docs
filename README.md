@@ -1,49 +1,55 @@
-# Starlight Starter Kit: Basics
+# Robotics Wiki
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+Documentation site for onboarding and internal knowledge around **autonomous systems and drone development** (Ubuntu 24.04, ROS 2 Jazzy, Gazebo, PX4 SITL, and related tooling).
 
-```
-npm create astro@latest -- --template starlight
-```
+Built with [Astro](https://astro.build/) and [Starlight](https://starlight.astro.build/).
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## What’s in the site
 
-## 🚀 Project Structure
+| Area | Purpose |
+|------|--------|
+| **[Onboarding](src/content/docs/onboarding/)** | Ordered path: platform → ROS 2 → verify → demo → PX4 SITL → first contribution, plus troubleshooting and AI-assisted coding notes. |
+| **[Milestones](src/content/docs/milestones/)** | Practical track (T0+); completion criteria aligned with the onboarding steps. |
+| **[install/](install/)** | Modular bash installer (`bootstrap.sh` for `curl \| bash`, `main.sh` for local runs). See [install/README.md](install/README.md). |
+| `guides/`, `reference/` | Reserved for future Diátaxis-style guides and reference; starter examples are not linked from the sidebar until real content lands. |
 
-Inside of your Astro + Starlight project, you'll see the following folders and files:
+The published home page is the Starlight splash at `/`; primary entry for new members is **`/onboarding/`**.
+
+## Prerequisites
+
+- Node.js 18+ (see Astro’s [environment docs](https://docs.astro.build/en/install-and-setup/))
+- npm (or another compatible package manager)
+
+## Commands
+
+From this directory:
+
+| Command | Action |
+|--------|--------|
+| `npm install` | Install dependencies |
+| `npm run dev` | Dev server (default [localhost:4321](http://localhost:4321)) |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview the production build locally |
+
+## Project layout
 
 ```
 .
-├── public/
+├── public/                 # Static assets (favicon, etc.)
+├── install/                # Modular robotics stack installer (bash)
 ├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+│   ├── assets/             # Images used from MDX/Markdown
+│   └── content/docs/       # All wiki pages (routes follow file paths)
+├── robotics-setup.sh       # Wrapper → install/main.sh
+├── astro.config.mjs        # Site title, sidebar, Starlight options
+├── src/content.config.ts   # Content collections
+└── package.json
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+## Source repository
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+https://github.com/2vyy/robotics-docs
 
-Static assets, like favicons, can be placed in the `public/` directory.
+## Contributing to the docs
 
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+Editorial goals: concise, task-oriented, human-maintained pages (see internal notes under `docs/superpowers/specs/` if present). For how to submit changes, see the wiki page **[Onboarding → Contribute](src/content/docs/onboarding/contribute.mdx)** once the site is running, or open that file in the repo.

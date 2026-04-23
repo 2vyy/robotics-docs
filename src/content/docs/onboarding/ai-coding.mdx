@@ -1,88 +1,29 @@
 ---
 title: Healthy Introduction to Coding with AI
 description: How to use modern AI tools effectively across robotics projects without losing your learning.
+sidebar:
+  order: 9
 ---
 
-import { Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
 
-# Healthy Introduction to Coding with AI
+Robotics projects like ours involve large packages, arcane documentation, and complex build systems. AI coding assistants are one of the highest-leverage tools available — they can help you generate boilerplate nodes, debug build errors, brainstorm system designs, and understand unfamiliar code fast.
 
-Robotics projects like ours use a lot of very large packages with lots of dependencies, arcane documentation, and complex build systems. In 2026, AI coding assistants are one of the highest-leverage tools available to developers. They can help you:
+But AI is a multiplier, not a replacement for understanding. Use it wisely and you'll build faster and better.
 
-- Generate boilerplate ROS 2 nodes or launch files
-- Debug difficult package build errors
-- Brainstorm system designs and message flows
-- Understand concepts outside of your field in terms you understand
-- Clean up large codebases
-- Write extensive tests and documentation
+## Free Access for UT Austin Students
 
-But AI is a multiplier, not a replacement for understanding fundamentals. Use it wisely and you'll build faster and better.
+| Tool | What you get |
+|------|-------------|
+| **UT Spark** | Web interface with access to frontier models including Claude and GPT. Campus-approved, private. |
+| **GitHub Copilot** | Free via the [GitHub Student Developer Pack](https://education.github.com/pack). Inline completions + chat in VS Code. |
+| **Claude Pro** | Available through the [UT Austin Claude Builder Club](https://txclaude.org/). |
+| **arena.ai** | Try frontier models with limited rate-limiting. |
 
-## Free Deals Available for UT Austin Students
+## Rules
 
-As a UT student in 2026 you have excellent options:
+- **Understand before you commit.** If you don't know what the AI is doing, ask it to explain. Read the diff before committing.
 
-UT Spark: web interface with Sonnet 4.5 and GPT 5.1
+- **Be honest about AI help.** Say when you're taking Claude's word for something versus when you independently verified it.
 
-GitHub Copilot Student Plan: free via the GitHub Student Developer Pack
-unlimited gpt-5-mini and 300 free prompts per month to premium models (gpt-5.3.codex/sonnet-4.6)
-can use copilot cli or something like opencode
-
-Claude Pro from UT Austin Claude Builder Club (https://txclaude.org/)
-
-Gemini used to have a 1 year free deal for students that has since been reduced to 1 month. Regardless, Antigravity IDE is pretty decent.
-
-You can also check out arena.ai to try out different premium models for free and see how they compare.
-
-## Healthy Ways to Use AI in Your Robotics Workflow
-
-### 1. Learning Phase (Onboarding & Early Projects)
-- Use AI to **explain** concepts, not generate final code.  
-  Example prompt:  
-  > "Explain the difference between a ROS 2 publisher and a service in the context of offboard control for a PX4 drone. Include a minimal working Python example using rclpy."
-
-- Ask it to walk you through errors: Paste compiler output or runtime logs and ask for step-by-step debugging.
-
-### 2. Productivity Phase (Building Real Features)
-**Good prompts for robotics:**
-- "Generate a ROS 2 C++ node that subscribes to `/fmu/out/vehicle_status` from px4_msgs and publishes a simple velocity command. Include proper CMakeLists and package.xml."
-- "Review this launch file for a Gazebo + PX4 simulation. Suggest improvements for modularity and argument handling."
-- "Design a high-level system architecture for an autonomous drone that does computer vision-based landing. List main nodes, topics, and potential failure modes."
-
-**Always follow the "AI + Human" loop:**
-1. Think about what you want first (or sketch pseudocode).
-2. Ask AI for a draft.
-3. **Read and understand** every line it produces.
-4. Test it immediately in simulation.
-5. Fix, commit, and iterate.
-
-### 3. Brainstorming & System Design
-AI shines here. Paste your current architecture (or describe it) and ask:
-- "What are common failure modes in this ROS 2 + PX4 setup?"
-- "How would you structure parameters and launch arguments for reusability across simulation and hardware?"
-- "Suggest a clean way to handle coordinate frame transforms between PX4, Gazebo, and my vision node."
-
-### Recommended Tools & Setup (2026)
-
-<CardGrid>
-  <Card title="VS Code + GitHub Copilot" icon="vscode">
-    Best everyday setup. Inline completions + chat sidebar. Enable it for `.cpp`, `.py`, `.xml`, `.launch.py`, and CMake files.
-  </Card>
-  <Card title="Cursor" icon="code">
-    Full AI-native IDE (VS Code fork). Excellent for repository-wide edits and agentic workflows. Try the free tier first.
-  </Card>
-  <Card title="Claude (claude.ai or Code mode)" icon="robot">
-    Strongest reasoning for complex refactors and large codebases. Great "Artifacts" feature for iterative changes.
-  </Card>
-  <Card title="UT Spark" icon="sparkles">
-    Fast, private, campus-approved starting point for brainstorming and quick questions.
-  </Card>
-</CardGrid>
-
-## Rules for Healthy AI Use
-
-- **Understand before you commit.** If you don't know what the AI is doing, ask it to explain it to you. Try to understand the logic of the code and the changes it's making (see git diff!) before you commit.
-
-- **Don't pretend AI didn't help.** AI of course isn't perfect, and it's important to say when you're basically taking Claude's word and when you independently checked something yourself.
-
-- **Security & Privacy.** Learn what environment variables and repository secrets are in your project right now, and always be cautious of terminal commands the AI is running. Harnesses have gotten better at preventing malicious commands (and packages!), but it's still important to be careful. Notable things to watch out for are git, apt, pip, uv, rm, and curl commands.
+- **Watch terminal commands carefully.** Be cautious with AI-suggested `git`, `apt`, `pip`, `uv`, `rm`, and `curl` commands. Check what they do before running them.

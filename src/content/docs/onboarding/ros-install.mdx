@@ -4,29 +4,70 @@ sidebar:
   order: 3
 ---
 
-We use an automated script to install ROS 2, Gazebo, and PX4 development tools. This script sets up a clean, consistent environment.
+We use an automated installer for ROS 2, Gazebo, and PX4 development tools. It is **idempotent**: if something fails mid-way (network blip, closed laptop), run the same command again and it picks up where it left off.
 
-### Preferred Path: Automated Script
+The installer is **modular** (several small `install/lib/*.sh` files plus `install/main.sh`). Behavior, flags, and phase order are documented in the repo: [install/BEHAVIOR.md](https://github.com/2vyy/robotics-docs/blob/main/install/BEHAVIOR.md).
 
-The installation script handles all system dependencies automatically. If the installation is interrupted (e.g., connection issues), run it again; it safely resumes from where it left off.
+### One command (recommended)
 
-**Install steps:**
+This downloads a tiny **bootstrap** script from GitHub, pulls the rest of the installer for the same **git ref**, then runs a full install. Default ref is `main`; pin a **tag or commit SHA** for a reproducible classroom build.
 
 ```bash
-# TODO: replace with the actual raw URL once the repo is public
-# e.g. https://raw.githubusercontent.com/your-org/your-repo/main/robotics-setup.sh
-curl -sSL <SCRIPT_URL> -o robotics-setup.sh
-chmod +x robotics-setup.sh
+# Full stack (ROS 2 Jazzy desktop, Gazebo, PX4 SITL, uXRCE agent, Python venv)
+curl -fsSL "https://raw.githubusercontent.com/2vyy/robotics-docs/main/install/bootstrap.sh" | bash
+```
 
-# Run full installation
+Pin the ref (examples):
+
+```bash
+export ROBOTICS_INSTALL_REF="main"   # or a tag, e.g. v1.0.0, or a commit SHA
+curl -fsSL "https://raw.githubusercontent.com/2vyy/robotics-docs/${ROBOTICS_INSTALL_REF}/install/bootstrap.sh" | bash
+```
+
+Pass installer flags after `bash` (they go to `main.sh`):
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/2vyy/robotics-docs/main/install/bootstrap.sh" | bash -s -- --dry-run
+```
+
+Optional: override the GitHub repo (forks):
+
+```bash
+export ROBOTICS_INSTALL_REPO="your-login/your-fork"
+```
+
+### Optional: verify bootstrap before running
+
+1. Open [install/SHA256SUMS](https://github.com/2vyy/robotics-docs/blob/main/install/SHA256SUMS) on the **same commit** you trust.
+2. Download bootstrap only, check the hash, then execute:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/2vyy/robotics-docs/main/install/bootstrap.sh" -o bootstrap.sh
+sha256sum bootstrap.sh
+# Compare the output to the `bootstrap.sh` line in SHA256SUMS for that commit.
+bash bootstrap.sh
+```
+
+### If you already cloned this repo
+
+From the repository root:
+
+```bash
+chmod +x install/main.sh robotics-setup.sh
+./install/main.sh --full
+# same as:
 ./robotics-setup.sh --full
 ```
 
-The script performs the following tasks:
-- Configures Ubuntu repositories for ROS 2.
-- Installs ROS 2 Jazzy, Gazebo Harmonic, and PX4 SITL tools.
-- Creates a Python virtual environment for necessary libraries.
-- Configures your `~/.bashrc` to auto-source ROS 2 and your workspace.
+### What the installer does (summary)
+
+- Configures Ubuntu repositories and keys for ROS 2.
+- Installs ROS 2 Jazzy desktop, Gazebo Harmonic (`ros_gz`), PX4 SITL tooling, and the Micro XRCE-DDS agent.
+- Builds a small ROS 2 workspace with `px4_msgs`.
+- Creates a Python virtual environment under `~/ros2_venv` and installs common Python packages (via `uv`).
+- Optionally appends `source` lines to your `~/.bashrc` (skip with `--no-bashrc`).
+
+Full detail: [install/README.md](https://github.com/2vyy/robotics-docs/blob/main/install/README.md).
 
 :::caution WSL2 — Gazebo display requirements
 Gazebo requires a working OpenGL context. On WSL2, install the latest GPU driver on the **Windows side** (not inside WSL) from your GPU vendor (NVIDIA/AMD/Intel). After installing, restart WSL with `wsl --shutdown` in PowerShell before launching Gazebo.
@@ -38,16 +79,16 @@ Once finished, proceed to [Step 3](./verify).
 
 ---
 
-### Manual Reference
+### Manual reference (same phases as the script)
 
-If you need to debug your setup, the script performs the following operations in order:
+These map 1:1 to the modular installer; see [BEHAVIOR.md](https://github.com/2vyy/robotics-docs/blob/main/install/BEHAVIOR.md) for flags and skip conditions.
 
-1. **System Setup**: Updates package lists and ensures a UTF-8 locale.
-2. **ROS 2 Jazzy**: Adds the official ROS 2 apt repository and installs `ros-jazzy-desktop`.
-3. **Gazebo**: Installs `ros-jazzy-ros-gz` for integration between ROS 2 and Gazebo Harmonic.
-4. **PX4 SITL**: Clones `PX4-Autopilot`, installs build dependencies, and compiles the firmware.
-5. **Micro XRCE-DDS**: Compiles the bridge agent from source to connect PX4 and ROS 2.
-6. **Python Environment**: Sets up a virtual environment in `~/ros2_venv` with required packages like `numpy`, `mavsdk`, and `opencv-python-headless`.
+1. **System setup**: APT update/upgrade and UTF-8 locale.
+2. **ROS 2 Jazzy**: Official ROS 2 apt repository and `ros-jazzy-desktop`.
+3. **Gazebo**: `ros-jazzy-ros-gz` and related vendor packages; sets `GZ_VERSION=harmonic`.
+4. **PX4 SITL**: Clone `PX4-Autopilot`, run upstream `ubuntu.sh`, build `px4_sitl`.
+5. **Micro XRCE-DDS**: Build and install the agent from source (connects PX4 to ROS 2).
+6. **Python environment**: `uv`, venv at `~/ros2_venv`, and packages such as `numpy`, `mavsdk`, `opencv-python-headless`.
 
 To create your own packages after installation:
 

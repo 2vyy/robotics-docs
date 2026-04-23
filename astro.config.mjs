@@ -7,22 +7,21 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Robotics Wiki',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
-			sidebar: [
+			social: [
 				{
-					label: 'Guides',
-					items: [
-						// Each item here is one entry in the navigation menu.
-						{ label: 'Example Guide', slug: 'guides/example' },
-					],
+					icon: 'github',
+					label: 'GitHub',
+					href: 'https://github.com/2vyy/robotics-docs',
 				},
+			],
+			sidebar: [
 				{
 					label: 'Onboarding',
 					autogenerate: { directory: 'onboarding' },
 				},
 				{
-					label: 'Reference',
-					autogenerate: { directory: 'reference' },
+					label: 'Milestones',
+					autogenerate: { directory: 'milestones' },
 				},
 			],
 		}),
