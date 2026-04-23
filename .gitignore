@@ -30,3 +30,38 @@ pnpm-debug.log*
 .claude/
 
 docs/superpowers
+
+# --- Local tooling / caches (do not commit) ---
+# Incremental code-review graph (regenerated locally)
+.code-review-graph/
+
+# Cursor / editor workspace state (machine-local)
+.cursor/
+
+# JetBrains / other IDEs
+.idea/
+*.iml
+
+# Env overrides (keep .env in ignore above; these are common local variants)
+.env.local
+.env.*.local
+
+# TypeScript / linters
+*.tsbuildinfo
+.eslintcache
+
+# Test / coverage output
+coverage/
+.nyc_output/
+
+# OS junk
+Thumbs.db
+Desktop.ini
+*~
+*.swp
+*.swo
+
+# Optional deploy tool folders (if added later)
+.vercel/
+.netlify/
+.turbo/

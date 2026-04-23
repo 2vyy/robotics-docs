@@ -22,7 +22,7 @@ If you are not running Ubuntu 24.04, choose the option that best fits your curre
 |---|---|
 | Ubuntu 24.04 | Native — continue to [Step 2](./ros-install). |
 | Other Linux | Use Distrobox to run an Ubuntu 24.04 container. |
-| Windows | Use WSL2 or dual-boot Ubuntu 24.04. |
+| Windows | **WSL2 + Ubuntu 24.04** (recommended) or dual-boot Ubuntu 24.04. |
 | macOS | Use a VM (UTM/Parallels) or dual-boot Ubuntu. |
 
 <Tabs groupId="platform-choice" defaultValue="native">
@@ -55,16 +55,77 @@ Distrobox lets you run Ubuntu 24.04 inside your current Linux distribution witho
 
 <TabItem label="Windows" value="windows">
 
-### Windows (WSL2 or Dual-boot)
+### Windows 11 + WSL2 (recommended)
 
-#### WSL2 (Easiest)
-WSL2 allows running Ubuntu 24.04 alongside Windows.
-1. Run `wsl --install -d Ubuntu-24.04` in PowerShell.
-2. Open the Ubuntu terminal from your Start menu.
-3. Proceed to **[Step 2](./ros-install)**. See the WSL2 note there about Gazebo display setup.
+The onboarding installer only runs on **official Ubuntu 24.04 LTS (Noble)**. On Windows, that means **WSL2 with the Ubuntu 24.04 app**, not generic “Ubuntu” unless you have confirmed it is 24.04. Microsoft’s overview: [Install WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
-#### Dual-boot (Best for performance)
-If you need full GPU acceleration for complex simulations, dual-booting Ubuntu 24.04 is the most reliable option. After installing, proceed to **[Step 2](./ros-install)**.
+#### Before you start
+
+- **Windows 11** (or Windows 10 22H2+ with current updates). Home or Pro is fine.
+- **Virtualization** enabled in firmware (Intel VT-x / AMD-V). If `wsl --install` errors about virtualization, reboot into BIOS/UEFI and enable it.
+- **Disk space**: plan for **50+ GB free** on the drive WSL uses (same ballpark as the rest of onboarding).
+- **Account**: you will create a **Linux username and password** the first time Ubuntu opens; remember them for `sudo`.
+
+#### Install WSL and Ubuntu 24.04
+
+1. Open **PowerShell** or **Windows Terminal** as **Administrator** (right‑click → Run as administrator) for the first-time WSL setup.
+2. Update WSL (fixes many first-run issues on older images):
+
+   ```powershell
+   wsl --update
+   ```
+
+3. Install **Ubuntu 24.04** explicitly (avoids accidentally getting an older LTS):
+
+   ```powershell
+   wsl --install -d Ubuntu-24.04
+   ```
+
+   If the command says the distribution is unknown, run `wsl --list --online`, find the exact **Ubuntu 24.04** name shown there, and pass that name after `-d`.
+
+4. **Restart** the PC if Windows asks you to.
+5. Launch **Ubuntu 24.04** from the Start menu (or run `wsl -d Ubuntu-24.04`). Complete the first-run prompts (username, password).
+
+**Alternative:** install **“Ubuntu 24.04 LTS”** from the **Microsoft Store**, then open it once so WSL finishes setup.
+
+#### Confirm WSL2 and Ubuntu version
+
+In **PowerShell**:
+
+```powershell
+wsl -l -v
+```
+
+Your Ubuntu line should show **VERSION 2**. If it shows `1`, run:
+
+```powershell
+wsl --set-version Ubuntu-24.04 2
+```
+
+(Use the exact name from `wsl -l -v` if it differs.)
+
+Inside the **Ubuntu** shell:
+
+```bash
+grep -E '^(ID|VERSION_ID|VERSION_CODENAME)=' /etc/os-release
+```
+
+You should see `ID=ubuntu`, `VERSION_ID="24.04"`, and `VERSION_CODENAME=noble`. If not, install the correct Ubuntu app from the Store / `wsl --install` list — the [Step 2](./ros-install) script will refuse to run on anything else.
+
+#### Everyday use
+
+- **Windows Terminal** (Store) can host Ubuntu tabs alongside PowerShell; optional but convenient.
+- **Files**: from Explorer, `\\wsl$\Ubuntu-24.04\home\<your-linux-user>` reaches your Linux home.
+
+#### Gazebo / GPU (read before Step 5)
+
+Graphical apps (Gazebo) use **WSLg** on Windows 11. Still install the **latest GPU driver from the vendor on the Windows side** (NVIDIA / AMD / Intel), then run `wsl --shutdown` in PowerShell and reopen Ubuntu. Details: [WSL2 note in Step 2](./ros-install) and [Verify](./verify).
+
+When your checks above look good, continue to **[Step 2](./ros-install)**.
+
+### Dual-boot (optional, heavier setup)
+
+If you want **native** Ubuntu on metal (often simpler GPU behavior for heavy sim), install Ubuntu 24.04 LTS from a USB alongside Windows. Back up first and read Ubuntu’s dual-boot guide. When you boot into Ubuntu 24.04, go straight to **[Step 2](./ros-install)**.
 </TabItem>
 
 <TabItem label="macOS" value="macos">
