@@ -1,0 +1,45 @@
+---
+title: Step 5 - PX4 flight test (SITL)
+sidebar:
+  order: 6
+---
+
+This is the full integration test: PX4 firmware running in software, connected to Gazebo, with its data flowing into ROS 2 via the uXRCE-DDS bridge. You'll need three terminals open at once.
+
+**Terminal 1** — start PX4 SITL with the Gazebo X500 quadcopter model:
+
+```bash
+cd ~/PX4-Autopilot
+make px4_sitl gz_x500
+```
+
+A Gazebo window should open showing a quadcopter sitting on a runway. The terminal will show PX4 booting up (you'll see lots of status messages — that's normal).
+
+**Terminal 2** — start the uXRCE-DDS agent:
+
+```bash
+MicroXRCEAgent udp4 -p 8888
+```
+
+You should see the agent print `[info] Client connected` within a few seconds. This means PX4 and the agent are talking.
+
+**Terminal 3** — check that PX4 topics appear in ROS 2:
+
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 topic list
+```
+
+You should see dozens of topics like `/fmu/out/vehicle_status`, `/fmu/out/sensor_combined`, etc. These are live telemetry from the simulated PX4 flight controller.
+
+Try peeking at one:
+
+```bash
+ros2 topic echo /fmu/out/vehicle_status
+```
+
+:::tip What am I looking at?
+Each of these topics corresponds to a uORB message inside PX4. The uXRCE-DDS bridge translates them into ROS 2 messages defined by `px4_msgs`. This is how your ROS 2 code will read sensor data, GPS, battery status, and more from a real or simulated drone.
+:::
+
+Press `Ctrl+C` in all three terminals when you're done.

@@ -1,0 +1,34 @@
+---
+title: Step 6 - Make your first contribution
+sidebar:
+  order: 7
+---
+
+The best way to solidify what you've learned is to contribute something — even something tiny. Here are ideas sorted from easiest to slightly harder:
+
+**Beginner-friendly first PRs:**
+
+| Idea | What you'll practice |
+|---|---|
+| Fix a typo in a doc or README | Fork → branch → edit → PR workflow |
+| Add a tip or clarification to this onboarding guide | Writing, Markdown/MDX |
+| Add a FAQ entry for a problem you hit during setup | Helping future teammates |
+| Improve a code comment or docstring | Reading and understanding existing code |
+| Add a missing dependency to `package.xml` | Understanding ROS 2 package structure |
+
+**How to submit:**
+
+1. Fork the repo on GitHub (if you haven't already).
+2. Create a branch: `git checkout -b fix/typo-in-onboarding`.
+3. Make your change and commit: `git add . && git commit -m "fix: correct typo in step 3"`.
+4. Push and open a Pull Request on GitHub.
+
+See the repo's `CONTRIBUTING.md` for the full workflow and branch naming conventions.
+
+:::tip Commit message format
+We use short prefixes: `fix:`, `feat:`, `docs:`, `chore:`. For example:
+
+- `docs: add WSL2 GPU driver note to onboarding`
+- `fix: correct empy version pin in pip requirements`
+- `feat: add battery monitor node`
+:::

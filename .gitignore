@@ -25,3 +25,8 @@ pnpm-debug.log*
 
 # brainstorming companion
 .superpowers/
+
+# local Claude Code config (personal permissions, not for sharing)
+.claude/
+
+docs/superpowers

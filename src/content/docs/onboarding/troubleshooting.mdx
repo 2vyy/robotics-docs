@@ -1,0 +1,103 @@
+---
+title: Troubleshooting
+sidebar:
+  order: 8
+---
+
+Quick fixes for the most common problems during setup.
+
+### `ros2: command not found`
+
+ROS 2 isn't sourced in your current terminal. Run:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+```
+
+If this fixes it, make sure the line is in your `~/.bashrc`:
+
+```bash
+grep "ros/jazzy" ~/.bashrc
+```
+
+If nothing is printed, add it:
+
+```bash
+echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc
+```
+
+### Permission denied when running the script
+
+You need to mark it as executable first:
+
+```bash
+chmod +x robotics-setup.sh
+```
+
+### Gazebo opens but immediately crashes / black screen
+
+Usually a GPU driver issue.
+
+- **Native Ubuntu**: update your GPU drivers (`sudo ubuntu-drivers install`).
+- **WSL2**: install the latest GPU driver on the Windows side (not inside WSL). Restart WSL afterward (`wsl --shutdown` in PowerShell, then reopen).
+- **VM**: enable 3D acceleration in your VM settings and allocate more video memory.
+
+### PX4 build fails with `empy` errors
+
+You probably have `empy` v4 instead of v3. Inside your venv:
+
+```bash
+pip install empy==3.3.4
+```
+
+Then rebuild:
+
+```bash
+cd ~/PX4-Autopilot
+make clean
+make px4_sitl
+```
+
+### `MicroXRCEAgent: command not found`
+
+The shared library path may not be updated. Run:
+
+```bash
+sudo ldconfig /usr/local/lib/
+```
+
+If it still doesn't work, verify the binary exists:
+
+```bash
+ls /usr/local/bin/MicroXRCEAgent
+```
+
+If the file isn't there, re-do the agent build from the Manual Reference section of [Step 2](./ros-install).
+
+### `ros2 topic list` shows nothing after starting PX4 + agent
+
+- Make sure the agent is running before or at the same time as PX4.
+- Check that PX4 printed `uxrce_dds_client: connected` in its terminal.
+- Make sure you sourced the workspace: `source ~/ros2_ws/install/setup.bash`.
+
+### Script failed midway — can I re-run it?
+
+Yes. The script is designed to be re-run safely. It checks whether each component is already installed before acting. Just run the same command again:
+
+```bash
+./robotics-setup.sh --full
+```
+
+### Saving a log for the team
+
+If you're stuck and asking for help, capture the full output:
+
+```bash
+./robotics-setup.sh --full 2>&1 | tee install.log
+```
+
+Share `install.log` along with:
+
+- The exact command you ran.
+- Whether you're on native Ubuntu, WSL2, Distrobox, or a VM.
+- The last 20–30 lines of output (or the whole file).

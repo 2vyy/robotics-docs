@@ -1,0 +1,74 @@
+---
+title: Step 4 - Run a ROS 2 demo
+sidebar:
+  order: 5
+---
+
+Now let's see ROS 2 actually do something. This demo uses two built-in nodes — a talker that publishes messages and a listener that receives them. This is the "hello world" of ROS 2 and demonstrates the core concept: nodes communicate by publishing and subscribing to topics.
+
+#### 4.1 - Talker + Listener
+
+**Terminal 1** — start the talker:
+
+```bash
+ros2 run demo_nodes_cpp talker
+```
+
+You should see output like:
+
+```text
+[INFO] [talker]: Publishing: 'Hello World: 1'
+[INFO] [talker]: Publishing: 'Hello World: 2'
+[INFO] [talker]: Publishing: 'Hello World: 3'
+...
+```
+
+**Terminal 2** — open a new terminal and start the listener:
+
+```bash
+ros2 run demo_nodes_cpp listener
+```
+
+You should see:
+
+```text
+[INFO] [listener]: I heard: [Hello World: 1]
+[INFO] [listener]: I heard: [Hello World: 2]
+...
+```
+
+The talker is publishing string messages to a topic called `/chatter`. The listener is subscribed to that same topic and prints whatever it receives. This publish/subscribe pattern is the foundation of virtually all ROS 2 communication.
+
+Press `Ctrl+C` in both terminals to stop them.
+
+#### 4.2 - Inspect topics with the CLI
+
+While the talker is still running (restart it if you stopped it), open another terminal and try these commands:
+
+```bash
+# List all active topics
+ros2 topic list
+
+# See what's being published on /chatter in real time
+ros2 topic echo /chatter
+
+# See how fast messages are arriving
+ros2 topic hz /chatter
+
+# See the message type and details
+ros2 topic info /chatter --verbose
+```
+
+:::info Why does this matter?
+When you're debugging a drone or robot, you'll constantly use `ros2 topic list`, `ros2 topic echo`, and `ros2 topic hz` to check whether nodes are talking to each other and how fast data is flowing. Get comfortable with these commands now — they'll save you hours later.
+:::
+
+#### 4.3 - (Optional) Launch Gazebo through ROS 2
+
+If Gazebo passed the check in [Step 3](./verify), try launching it via ROS 2's launch system:
+
+```bash
+ros2 launch ros_gz_sim gz_sim.launch.py gz_args:='shapes.sdf'
+```
+
+This does the same thing as `gz sim shapes.sdf` but goes through ROS 2's launch infrastructure, which you'll use in real projects to start multiple nodes and simulators together from a single command.

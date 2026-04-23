@@ -13,8 +13,9 @@ The installation script handles all system dependencies automatically. If the in
 **Install steps:**
 
 ```bash
-# Download the script
-curl -sSL https://raw.githubusercontent.com/yourusername/your-repo/main/robotics-setup.sh -o robotics-setup.sh
+# TODO: replace with the actual raw URL once the repo is public
+# e.g. https://raw.githubusercontent.com/your-org/your-repo/main/robotics-setup.sh
+curl -sSL <SCRIPT_URL> -o robotics-setup.sh
 chmod +x robotics-setup.sh
 
 # Run full installation
@@ -27,13 +28,19 @@ The script performs the following tasks:
 - Creates a Python virtual environment for necessary libraries.
 - Configures your `~/.bashrc` to auto-source ROS 2 and your workspace.
 
+:::caution WSL2 — Gazebo display requirements
+Gazebo requires a working OpenGL context. On WSL2, install the latest GPU driver on the **Windows side** (not inside WSL) from your GPU vendor (NVIDIA/AMD/Intel). After installing, restart WSL with `wsl --shutdown` in PowerShell before launching Gazebo.
+
+If Gazebo still won't open, you can run headless simulations with `gz sim -s` (server-only) and connect a remote client later.
+:::
+
 Once finished, proceed to [Step 3](./verify).
 
 ---
 
 ### Manual Reference
 
-If you need to debug your setup, the script performs the following manual operations:
+If you need to debug your setup, the script performs the following operations in order:
 
 1. **System Setup**: Updates package lists and ensures a UTF-8 locale.
 2. **ROS 2 Jazzy**: Adds the official ROS 2 apt repository and installs `ros-jazzy-desktop`.
@@ -42,7 +49,7 @@ If you need to debug your setup, the script performs the following manual operat
 5. **Micro XRCE-DDS**: Compiles the bridge agent from source to connect PX4 and ROS 2.
 6. **Python Environment**: Sets up a virtual environment in `~/ros2_venv` with required packages like `numpy`, `mavsdk`, and `opencv-python-headless`.
 
-To create your own projects after installation, use:
+To create your own packages after installation:
 
 ```bash
 cd ~/ros2_ws/src

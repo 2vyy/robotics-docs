@@ -50,7 +50,7 @@ Distrobox lets you run Ubuntu 24.04 inside your current Linux distribution witho
    distrobox create -i ubuntu:24.04 -n jazzy
    distrobox enter jazzy
    ```
-3. Run the installation steps from within this container.
+3. Run the installation steps from within this container — proceed to **[Step 2](./ros-install)**.
 </TabItem>
 
 <TabItem label="Windows" value="windows">
@@ -60,10 +60,11 @@ Distrobox lets you run Ubuntu 24.04 inside your current Linux distribution witho
 #### WSL2 (Easiest)
 WSL2 allows running Ubuntu 24.04 alongside Windows.
 1. Run `wsl --install -d Ubuntu-24.04` in PowerShell.
-2. Open the Ubuntu terminal from your Start menu and follow the installation steps.
+2. Open the Ubuntu terminal from your Start menu.
+3. Proceed to **[Step 2](./ros-install)**. See the WSL2 note there about Gazebo display setup.
 
 #### Dual-boot (Best for performance)
-If you require full GPU acceleration for complex simulations, dual-booting Ubuntu 24.04 on your hardware is recommended.
+If you need full GPU acceleration for complex simulations, dual-booting Ubuntu 24.04 is the most reliable option. After installing, proceed to **[Step 2](./ros-install)**.
 </TabItem>
 
 <TabItem label="macOS" value="macos">
@@ -72,7 +73,9 @@ If you require full GPU acceleration for complex simulations, dual-booting Ubunt
 
 Performance varies by hardware.
 
-- **VM (Recommended)**: Use [UTM](https://mac.getutm.app/) to create an Ubuntu 24.04 VM.
+- **VM (Recommended)**: Use [UTM](https://mac.getutm.app/) to create an Ubuntu 24.04 VM. Enable "Use Virtualization" in UTM settings for better performance.
 - **Dual-boot (Intel only)**: For Intel Macs, you can partition your drive and install Ubuntu 24.04 to run natively.
+
+Once your Ubuntu environment is running, proceed to **[Step 2](./ros-install)**.
 </TabItem>
 </Tabs>

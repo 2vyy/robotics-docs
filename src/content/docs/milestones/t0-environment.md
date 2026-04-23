@@ -1,36 +1,22 @@
 ---
-title: T0: Environment Setup
+title: "T0: Environment Setup"
 ---
 ## Objective
 Get the simulation stack running on your machine.
 
-## Installation
-We use an automated script to install ROS 2, Gazebo, and PX4 development tools. This script sets up a clean, consistent environment.
+## Steps
 
-### Automated Script
-The installation script handles all system dependencies automatically. If the installation is interrupted, run it again; it safely resumes from where it left off.
+Follow the [Onboarding guide](/onboarding/) in order:
 
-```bash
-# Download the script
-curl -sSL https://raw.githubusercontent.com/yourusername/your-repo/main/robotics-setup.sh -o robotics-setup.sh
-chmod +x robotics-setup.sh
+1. [Choose your platform](/onboarding/platform-choice) — get into Ubuntu 24.04
+2. [Install ROS 2 Jazzy](/onboarding/ros-install) — run the automated setup script
+3. [Verify your install](/onboarding/verify) — confirm all components are working
+4. [Run a ROS 2 demo](/onboarding/first-demo) — talker/listener sanity check
+5. [PX4 flight test (SITL)](/onboarding/px4-test) — full simulation with Gazebo and ROS 2
 
-# Run full installation
-./robotics-setup.sh --full
-```
+## Completion Criteria
 
-The script performs the following tasks:
-- Configures Ubuntu repositories for ROS 2.
-- Installs ROS 2 Jazzy, Gazebo Harmonic, and PX4 SITL tools.
-- Creates a Python virtual environment for necessary libraries.
-- Configures your `~/.bashrc` to auto-source ROS 2 and your workspace.
-
-## Manual Setup Reference
-If you need to debug your setup, the script performs the following manual operations:
-
-1. **System Setup**: Updates package lists and ensures a UTF-8 locale.
-2. **ROS 2 Jazzy**: Adds the official ROS 2 apt repository and installs `ros-jazzy-desktop`.
-3. **Gazebo**: Installs `ros-jazzy-ros-gz` for integration between ROS 2 and Gazebo Harmonic.
-4. **PX4 SITL**: Clones `PX4-Autopilot`, installs build dependencies, and compiles the firmware.
-5. **Micro XRCE-DDS**: Compiles the bridge agent from source to connect PX4 and ROS 2.
-6. **Python Environment**: Sets up a virtual environment in `~/ros2_venv` with required packages like `numpy`, `mavsdk`, and `opencv-python-headless`.
+- `ros2 --version` prints a version
+- `gz sim shapes.sdf` opens a 3D window
+- PX4 SITL launches and connects to the uXRCE-DDS agent
+- `ros2 topic list` shows `/fmu/out/*` topics from the simulated drone

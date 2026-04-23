@@ -33,6 +33,8 @@
 #     --px4-dir DIR    Clone PX4-Autopilot into DIR (default: ~/PX4-Autopilot)
 #     --venv-dir DIR   Create Python venv at DIR (default: ~/ros2_venv)
 #     --ws-dir DIR     ROS 2 workspace dir (default: ~/ros2_ws)
+#     --pip-alias      Add alias pip='uv pip' to ~/.bashrc
+#     --compile-reqs   Re-generate hashed requirements files (requires uv)
 #     --help           Show this help message
 #
 #  Requirements:
@@ -52,7 +54,14 @@ export NEEDRESTART_SUSPEND=1
 LOGFILE="$HOME/ros2-jazzy-install.log"
 exec > >(tee -a "$LOGFILE") 2>&1
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
+if [[ -z "${SCRIPT_SOURCE}" || "${SCRIPT_SOURCE}" == "/dev/stdin" || "${SCRIPT_SOURCE}" == "bash" ]]; then
+    SCRIPT_DIR="$HOME/.robotics-setup"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${SCRIPT_SOURCE}")" && pwd)"
+fi
+mkdir -p "${SCRIPT_DIR}"
+REQUIREMENTS_FILE="${SCRIPT_DIR}/requirements.txt"
 
 # ─── Color helpers ───────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -91,8 +100,10 @@ INSTALL_PX4=true
 INSTALL_PIP=true
 MODIFY_BASHRC=true
 SET_PIP_ALIAS=false
+COMPILE_REQS=false
 REBUILD=false
 DRY_RUN=false
+ORIGINAL_ARGC=$#
 
 PX4_DIR="$HOME/PX4-Autopilot"
 VENV_DIR="$HOME/ros2_venv"
@@ -101,6 +112,45 @@ WS_DIR="$HOME/ros2_ws"
 UXRCE_AGENT_VERSION="v2.4.3"
 ROS_DISTRO="jazzy"
 UBUNTU_CODENAME="noble"
+
+print_help() {
+    cat <<'EOF'
+=============================================================================
+ robotics-setup.sh
+
+ One-stop installer for ROS 2 Jazzy + Gazebo Harmonic + PX4 SITL + uXRCE-DDS
+ + common Python/pip packages on Ubuntu 24.04 (Noble Numbat).
+
+ Usage:
+    ./robotics-setup.sh [OPTIONS]
+
+ Core options:
+    --full           Install everything (default if no flags given)
+    --no-ros         Skip ROS 2
+    --no-gazebo      Skip Gazebo
+    --no-px4         Skip PX4
+    --no-pip         Skip pip / Python packages
+    --no-bashrc      Do not modify ~/.bashrc
+    --rebuild        Force rebuilding PX4 and ROS workspace
+    --dry-run        Print actions without making changes
+    --no-color       Disable colored output
+    --ros-distro D   Use different ROS distro (default: jazzy)
+    --agent-ver V    Use different uXRCE Agent version (default: v2.4.3)
+    --px4-dir DIR    Clone PX4-Autopilot into DIR (default: ~/PX4-Autopilot)
+    --venv-dir DIR   Create Python venv at DIR (default: ~/ros2_venv)
+    --ws-dir DIR     ROS 2 workspace dir (default: ~/ros2_ws)
+    --help           Show this help message
+
+ Advanced options:
+    --ros-only       Install ROS 2 Jazzy Desktop + dev tools only
+    --gazebo-only    Install Gazebo Harmonic + ros_gz integration only
+    --px4-only       Install PX4-Autopilot SITL + uXRCE-DDS agent only
+    --pip-only       Install Python venv + pip packages only
+    --pip-alias      Add alias pip='uv pip' to ~/.bashrc
+    --compile-reqs   Re-generate a hashed requirements.txt using uv
+=============================================================================
+EOF
+}
 
 # ─── Pure-Bash TUI (no whiptail / dialog / tput dependency) ──────────────────
 #
@@ -125,10 +175,8 @@ tui_normal_screen()  { printf '%s' "${_esc}[?1049l"; }
 tui_clear()          { printf '%s' "${_csi}2J${_csi}H"; }
 tui_move()           { printf '%s' "${_csi}${1};${2}H"; }   # row col (1-based)
 tui_bold()           { printf '%s' "${_csi}1m"; }
-tui_dim()            { printf '%s' "${_csi}2m"; }
 tui_reset()          { printf '%s' "${_csi}0m"; }
 tui_fg()             { printf '%s' "${_csi}${1}m"; }        # e.g. 32 = green
-tui_bg()             { printf '%s' "${_csi}${1}m"; }        # e.g. 44 = blue bg
 tui_reverse()        { printf '%s' "${_csi}7m"; }
 
 # ── Read a single keypress; sets KEY and handles arrow escape sequences ───────
@@ -166,8 +214,7 @@ draw_box() {
     printf '+'
     if [[ -n $title ]]; then
         local t=" ${title} "
-        local tlen=${#t}
-        local pad=$(( inner_w - tlen ))
+        local pad=$(( inner_w - ${#t} ))
         local lpad=$(( pad / 2 ))
         local rpad=$(( pad - lpad ))
         printf '%*s' "$lpad" '' | tr ' ' '-'
@@ -211,14 +258,20 @@ launch_tui() {
 
     # Per-component option counts and start indices into OPT_* arrays
     # COMP_OPT_COUNT=0 means no sub-options (no indicator shown)
-    local -a COMP_OPT_COUNT=( 2  0  2  1  0 )   # ROS GAZEBO PX4 PIP BASHRC
+    local -a COMP_OPT_COUNT=( 2  0  2  3  0 )   # ROS GAZEBO PX4 PIP BASHRC
     local -a COMP_OPT_START=( 0 -1  2  4 -1 )   # index into OPT_* arrays (-1 = none)
 
     # Flat option arrays (ordered: ROS opts first, then PX4, then PIP)
-    local -a OPT_LABELS=( "ROS distro" "Workspace " "Agent ver " "PX4 dir   " "venv dir  " )
-    local -a OPT_VALS=(   "$ROS_DISTRO"  "$WS_DIR"  "$UXRCE_AGENT_VERSION"  "$PX4_DIR"  "$VENV_DIR" )
+    local -a OPT_LABELS=( "ROS distro" "Workspace " "Agent ver " "PX4 dir   " "venv dir  " "Pip alias " "Hash reqs " )
+    local -a OPT_VALS=(   "$ROS_DISTRO"  "$WS_DIR"  "$UXRCE_AGENT_VERSION"  "$PX4_DIR"  "$VENV_DIR" "OFF"       "OFF"       )
     # Which component index owns each option — must stay consistent with COMP_OPT_START/COMP_OPT_COUNT
-    local -a OPT_COMP=(   0             0            2                        2           3           )
+    local -a OPT_COMP=(   0             0            2                        2           3           3           3           )
+    # OPT_TYPE: 0=text, 1=toggle
+    local -a OPT_TYPE=(   0             0            0                        0           0           1           1           )
+
+    # Sync toggle values from script defaults
+    [[ $SET_PIP_ALIAS == true ]] && OPT_VALS[5]="ON" || OPT_VALS[5]="OFF"
+    [[ $COMPILE_REQS == true  ]] && OPT_VALS[6]="ON" || OPT_VALS[6]="OFF"
 
     # Per-component storage estimates (placeholder — update with accurate values)
     # KB values used for disk space check; display labels shown in confirmation overlay
@@ -368,25 +421,46 @@ launch_tui() {
             if [[ "$entry" == opt:* ]]; then
                 local oi="${entry#opt:}"
                 local val="${OPT_VALS[$oi]}"
+                local type="${OPT_TYPE[$oi]}"
 
                 if (( is_sel )); then
                     tui_fg 220; tui_bold
                     printf '  > %s ' "${OPT_LABELS[$oi]}"
                     tui_reset
-                    tui_fg 33; tui_bold
-                    if $editing; then
-                        printf '['; fit "$val" $(( val_w - 3 )); printf ']>'
+                    
+                    if [[ $type == 1 ]]; then
+                        # Toggle type
+                        if [[ $val == "ON" ]]; then
+                            tui_fg 32; tui_bold; tui_reverse; printf ' ON '; tui_reset
+                        else
+                            tui_fg 90; tui_reverse; printf ' OFF '; tui_reset
+                        fi
                     else
-                        printf '['; fit "$val" $(( val_w - 2 )); printf ']'
+                        # Text type
+                        tui_fg 33; tui_bold
+                        if $editing; then
+                            printf '['; fit "$val" $(( val_w - 3 )); printf ']>'
+                        else
+                            printf '['; fit "$val" $(( val_w - 2 )); printf ']'
+                        fi
+                        tui_reset
                     fi
-                    tui_reset
                 else
                     tui_fg 240
                     printf '  > %s ' "${OPT_LABELS[$oi]}"
                     tui_reset
-                    tui_fg 37
-                    fit "$val" "$val_w"
-                    tui_reset
+                    
+                    if [[ $type == 1 ]]; then
+                         if [[ $val == "ON" ]]; then
+                            tui_fg 32; printf 'ON'; tui_reset
+                        else
+                            tui_fg 90; printf 'OFF'; tui_reset
+                        fi
+                    else
+                        tui_fg 37
+                        fit "$val" "$val_w"
+                        tui_reset
+                    fi
                 fi
 
                 (( screen_row++ ))
@@ -403,7 +477,12 @@ launch_tui() {
         tui_fg 90
         local cur_entry="${FLAT_LIST[$cursor]}"
         if [[ "$cur_entry" == opt:* ]]; then
-            printf 'ENTER edit  ↑↓ move  < back'
+            local oi="${cur_entry#opt:}"
+            if [[ ${OPT_TYPE[$oi]} == 1 ]]; then
+                printf 'SPACE toggle  ↑↓ move  < back'
+            else
+                printf 'ENTER edit  ↑↓ move  < back'
+            fi
         else
             # Compute whether all expandable ON components are currently expanded
             local _all_exp=true
@@ -511,7 +590,6 @@ launch_tui() {
         fi
     }
 
-    # ── Inline text editor for an advanced field ───────────────────────────────
     # ── Inline text editor for a sub-option field ─────────────────────────────
     edit_field() {
         local oi=$1
@@ -626,13 +704,24 @@ launch_tui() {
                     build_flat_list
                     n_rows=${#FLAT_LIST[@]}
                     (( cursor >= n_rows )) && cursor=$(( n_rows - 1 ))
+                elif [[ "$cur_entry" == opt:* ]]; then
+                    local oi="${cur_entry#opt:}"
+                    if [[ ${OPT_TYPE[$oi]} == 1 ]]; then
+                        if [[ ${OPT_VALS[$oi]} == "ON" ]]; then
+                            OPT_VALS[$oi]="OFF"
+                        else
+                            OPT_VALS[$oi]="ON"
+                        fi
+                    fi
                 fi
                 ;;
 
             ENTER)
                 if [[ "$cur_entry" == opt:* ]]; then
                     local oi="${cur_entry#opt:}"
-                    edit_field "$oi"
+                    if [[ ${OPT_TYPE[$oi]} == 0 ]]; then
+                        edit_field "$oi"
+                    fi
                 elif [[ "$cur_entry" == "install" ]]; then
                     confirm_open=true
                 fi
@@ -672,12 +761,14 @@ launch_tui() {
         esac
     done
 
-    # OPT_VALS order: ROS distro(0), Workspace(1), Agent ver(2), PX4 dir(3), venv dir(4)
+    # OPT_VALS order: ROS distro(0), Workspace(1), Agent ver(2), PX4 dir(3), venv dir(4), Pip alias(5), Hash reqs(6)
     ROS_DISTRO="${OPT_VALS[0]}"
     WS_DIR="${OPT_VALS[1]}"
     UXRCE_AGENT_VERSION="${OPT_VALS[2]}"
     PX4_DIR="${OPT_VALS[3]}"
     VENV_DIR="${OPT_VALS[4]}"
+    SET_PIP_ALIAS=$([[ ${OPT_VALS[5]} == "ON" ]] && echo true || echo false)
+    COMPILE_REQS=$([[ ${OPT_VALS[6]} == "ON" ]] && echo true || echo false)
 }
 
 # ─── Argument parsing ────────────────────────────────────────────────────────
@@ -710,8 +801,9 @@ else
             --venv-dir)   VENV_DIR="$2"; shift ;;
             --ws-dir)     WS_DIR="$2"; shift ;;
             --pip-alias)  SET_PIP_ALIAS=true ;;
+            --compile-reqs) COMPILE_REQS=true ;;
             --help|-h)
-                sed -n '/^# ====/,/^# ====/p' "$0" | sed 's/^# //' | sed 's/^#//'
+                print_help
                 exit 0
                 ;;
             *)
@@ -721,6 +813,17 @@ else
         esac
         shift
     done
+fi
+
+# Safety pause for non-interactive default runs.
+if [[ $ORIGINAL_ARGC -eq 0 && ! -t 0 ]]; then
+    log_warn "Non-interactive run detected with no flags; defaulting to --full install."
+    log_warn "This can download tens of GB. Press Ctrl-C now to cancel."
+    for (( i = 10; i >= 1; i-- )); do
+        printf '\rStarting in %2ss... ' "$i"
+        sleep 1
+    done
+    printf '\n'
 fi
 
 # If Gazebo, PX4, or Pip are requested, we need the ROS base (repos + keys)
@@ -742,13 +845,45 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-# Free disk space check
-FREE_GB=$(df -BG /home | awk 'NR==2 {print $4+0}')
-if [[ $FREE_GB -lt 30 ]]; then
-    log_error "Only ${FREE_GB}GB free in /home. Need ≥30 GB for full install."
-    exit 1
+# Disk space check against actual install targets
+resolve_existing_path() {
+    local p="$1"
+    while [[ ! -e "$p" && "$p" != "/" ]]; do
+        p="$(dirname "$p")"
+    done
+    echo "$p"
+}
+
+available_gb_for_path() {
+    local target resolved
+    target="$1"
+    resolved="$(resolve_existing_path "$target")"
+    df -BG "$resolved" 2>/dev/null | awk 'NR==2 {print $4+0}'
+}
+
+check_target_space() {
+    local target="$1"
+    local required_gb="$2"
+    local label="$3"
+    local free_gb
+    free_gb="$(available_gb_for_path "$target")"
+    if [[ -z "$free_gb" || "$free_gb" -lt "$required_gb" ]]; then
+        log_error "Only ${free_gb:-0}GB free for ${label} (${target}); need at least ${required_gb}GB."
+        exit 1
+    fi
+    log_info "Disk space for ${label}: ${free_gb}GB free ✓"
+}
+
+if $INSTALL_ROS_BASE; then
+    check_target_space "/" 15 "ROS/Gazebo apt packages"
 fi
-log_info "Disk space: ${FREE_GB}GB free ✓"
+if $INSTALL_PX4; then
+    check_target_space "${PX4_DIR}" 10 "PX4 source/build"
+    check_target_space "${WS_DIR}" 4 "ROS workspace"
+fi
+if $INSTALL_PIP; then
+    check_target_space "${VENV_DIR}" 2 "Python venv"
+fi
 
 # RAM hint
 RAM_TOTAL=$(free -h | awk '/^Mem:/ {print $2}')
@@ -788,12 +923,95 @@ is_apt_installed() {
     dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
 }
 
+write_requirements() {
+    if $DRY_RUN; then
+        echo -e "${YELLOW}[DRY-RUN]${NC} Write ${REQUIREMENTS_FILE}"
+        return 0
+    fi
+
+    cat > "${REQUIREMENTS_FILE}" <<'REQUIREMENTS_EOF'
+# ROS 2 Robotics Wiki - Core Python Dependencies
+# Optimized for ROS 2 Jazzy on Ubuntu 24.04
+
+# Scientific Computing
+numpy
+scipy
+matplotlib
+pandas
+
+# Computer Vision
+opencv-python-headless
+
+# Robotics Math & Transforms
+pyyaml
+transforms3d
+pyquaternion
+
+# MAVLink & PX4 Integration
+mavsdk
+pymavlink
+
+# Testing & Quality Assurance
+pytest
+pytest-cov
+pre-commit
+
+# Build Tools & Generators
+# NOTE: empy must be version 3.x for PX4 compatibility
+empy==3.3.4
+jinja2
+toml
+jsonschema
+future
+kconfiglib
+packaging
+REQUIREMENTS_EOF
+}
+
+requirements_have_hashes() {
+    local req_file="$1"
+    grep -Eq '^[[:space:]]*[^#].*--hash=' "$req_file"
+}
+
+compute_uv_exclude_newer() {
+    date -u -d '7 days ago' '+%Y-%m-%dT%H:%M:%SZ'
+}
+
+configure_uv_defaults() {
+    local exclude_newer
+    exclude_newer="$(compute_uv_exclude_newer)"
+    export UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER:-$exclude_newer}"
+
+    local uv_config_dir="$HOME/.config/uv"
+    local uv_config_file="${uv_config_dir}/uv.toml"
+    if [[ -f "${uv_config_file}" ]]; then
+        log_info "Global uv config already exists at ${uv_config_file}"
+        return 0
+    fi
+
+    if $DRY_RUN; then
+        echo -e "${YELLOW}[DRY-RUN]${NC} Write ${uv_config_file} with exclude-newer=${exclude_newer}"
+        return 0
+    fi
+
+    mkdir -p "${uv_config_dir}"
+    cat > "${uv_config_file}" <<EOF
+exclude-newer = "${exclude_newer}"
+EOF
+    log_info "Created global uv config at ${uv_config_file}"
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 0 — System update & locale
 # ═══════════════════════════════════════════════════════════════════════════════
-log_step "Step 0: System update & locale configuration"
+install_system_base() {
+    log_step "Step 0: System update & locale configuration"
 
-if ! $DRY_RUN; then
+    if $DRY_RUN; then
+        log_info "Dry-run mode: skipping system update & locale changes."
+        return 0
+    fi
+
     log_info "Setting up UTF-8 locale..."
     sudo apt-get update -qq
     sudo apt-get install -y -qq locales >/dev/null
@@ -804,7 +1022,7 @@ if ! $DRY_RUN; then
     log_info "Consolidated apt update & upgrade..."
     sudo apt-get update -qq
     sudo apt-get upgrade -y -qq
-fi
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 1 — ROS 2 Base / Repository Setup
@@ -817,9 +1035,13 @@ install_ros_base() {
     if [[ ! -f /etc/apt/sources.list.d/ros2.list ]]; then
         log_info "Adding ROS 2 apt repository..."
         run_cmd sudo add-apt-repository -y universe
-        run_cmd sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-ring.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-ring.gpg] http://packages.ros.org/ros2/ubuntu ${UBUNTU_CODENAME} main" | \
-            run_cmd sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+        run_cmd sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+        if $DRY_RUN; then
+            echo -e "${YELLOW}[DRY-RUN]${NC} Write /etc/apt/sources.list.d/ros2.list for ROS 2 apt source"
+        else
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu ${UBUNTU_CODENAME} main" | \
+                sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+        fi
         run_cmd sudo apt-get update -qq
     fi
 
@@ -831,7 +1053,9 @@ install_ros_base() {
     if [[ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]]; then
         run_cmd sudo rosdep init || true
     fi
-    run_cmd rosdep update --rosdistro="${ROS_DISTRO}" || true
+    if ! run_cmd rosdep update --rosdistro="${ROS_DISTRO}"; then
+        log_warn "rosdep update failed (often transient network or proxy issues on first run); continuing."
+    fi
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -871,6 +1095,19 @@ install_gazebo() {
     bashrc_append "export GZ_VERSION=harmonic"
 }
 
+# Build Micro XRCE-DDS agent from source
+build_xrce_agent() {
+    local temp_agent="/tmp/XRCE-Agent"
+    if [[ -d "${temp_agent}" ]]; then
+        run_cmd rm -rf "${temp_agent}"
+    fi
+    run_cmd git clone -b "${UXRCE_AGENT_VERSION}" https://github.com/eProsima/Micro-XRCE-DDS-Agent.git "${temp_agent}"
+    run_cmd cmake -S "${temp_agent}" -B "${temp_agent}/build"
+    run_cmd make -C "${temp_agent}/build" -j"$(nproc)"
+    run_cmd sudo make -C "${temp_agent}/build" install
+    run_cmd sudo ldconfig /usr/local/lib/
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 4 — PX4 SITL + Agent + Workspace
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -890,7 +1127,7 @@ install_px4() {
     # Smarter build logic
     if $REBUILD || [[ ! -f "${PX4_DIR}/build/px4_sitl_default/bin/px4" ]]; then
         log_info "Building PX4 SITL (this may take 10+ min)..."
-        (cd "${PX4_DIR}" && run_cmd make px4_sitl)
+        run_cmd make -C "${PX4_DIR}" px4_sitl
     else
         log_info "PX4 SITL already built — skipping (use --rebuild to force)"
     fi
@@ -898,14 +1135,7 @@ install_px4() {
     # Agent
     if [[ ! -f /usr/local/bin/MicroXRCEAgent ]]; then
         log_info "Building Micro XRCE-DDS Agent ${UXRCE_AGENT_VERSION}..."
-        (
-            TEMP_AGENT="/tmp/XRCE-Agent"
-            run_cmd git clone -b "${UXRCE_AGENT_VERSION}" https://github.com/eProsima/Micro-XRCE-DDS-Agent.git "${TEMP_AGENT}"
-            cd "${TEMP_AGENT}" && mkdir build && cd build
-            run_cmd cmake .. && run_cmd make -j"$(nproc)"
-            run_cmd sudo make install
-            run_cmd sudo ldconfig /usr/local/lib/
-        )
+        build_xrce_agent
     fi
 
     # Workspace
@@ -916,7 +1146,13 @@ install_px4() {
     
     if $REBUILD || [[ ! -f "${WS_DIR}/install/setup.bash" ]]; then
         log_info "Building ROS 2 workspace..."
-        (cd "${WS_DIR}" && source "/opt/ros/${ROS_DISTRO}/setup.bash" && run_cmd colcon build --symlink-install)
+        if [[ -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]]; then
+            source "/opt/ros/${ROS_DISTRO}/setup.bash"
+        fi
+        run_cmd colcon build --symlink-install \
+            --base-paths "${WS_DIR}/src" \
+            --build-base "${WS_DIR}/build" \
+            --install-base "${WS_DIR}/install"
     fi
     bashrc_append "source ${WS_DIR}/install/setup.bash"
 }
@@ -935,34 +1171,59 @@ install_uv() {
         bashrc_append 'export PATH="$HOME/.local/bin:$PATH"'
     fi
 
-    # Ensure safe defaults for uv: avoid installing extremely new releases (supply-chain safety)
-    if [[ ! -f "$HOME/.config/uv/uv.toml" ]]; then
-        log_info "Creating global uv config with 7-day cooldown for new packages."
-        run_cmd mkdir -p "$HOME/.config/uv"
-        run_cmd bash -lc 'cat > "$HOME/.config/uv/uv.toml" <<EOF
-[settings]
-exclude-newer = "7 days"
-EOF'
-        log_info "Created global uv config at $HOME/.config/uv/uv.toml"
+    configure_uv_defaults
+
+    # Install useful standalone CLI tools via uv tool
+    log_info "Installing standalone CLI tools (ruff, ty, just) via uv tool..."
+    if command -v ruff &>/dev/null; then
+        log_info "ruff already available ✓"
     else
-        log_info "Global uv config already exists at $HOME/.config/uv/uv.toml"
+        run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv tool install ruff
     fi
+    if command -v ty &>/dev/null; then
+        log_info "ty already available ✓"
+    else
+        run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv tool install ty
+    fi
+    if command -v just &>/dev/null; then
+        log_info "just already available ✓"
+    else
+        run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv tool install rust-just
+    fi
+}
+
+compile_requirements() {
+    log_step "Helper: Compiling hashed requirements"
+
+    if [[ ! -f "${REQUIREMENTS_FILE}" ]]; then
+        if $DRY_RUN; then
+            echo -e "${YELLOW}[DRY-RUN]${NC} Compile ${REQUIREMENTS_FILE} with hashes"
+            return 0
+        fi
+        log_error "${REQUIREMENTS_FILE} not found! Cannot compile."
+        return 1
+    fi
+
+    log_info "Compiling ${REQUIREMENTS_FILE} with hashes..."
+    run_cmd uv pip compile --generate-hashes "${REQUIREMENTS_FILE}" -o "${REQUIREMENTS_FILE}"
 }
 
 install_pip() {
     log_step "Step 5: Python Virtual Environment (uv)"
     install_uv
+    write_requirements
 
-    # Apply a reasonable cooldown to avoid pulling super-new releases (supply-chain safety)
-    export UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER:-7 days}"
-    bashrc_append 'export UV_EXCLUDE_NEWER="7 days"'
+    if $COMPILE_REQS; then
+        compile_requirements
+    fi
 
     log_info "Setting up Python dependencies with uv pip"
 
     if [[ ! -d "${VENV_DIR}" ]]; then
         log_info "Creating virtual environment at ${VENV_DIR}..."
         # --seed adds pip inside the venv for any tooling that calls pip directly
-        # --system-site-packages ensures ROS system packages are visible
+        # --system-site-packages keeps ROS apt-installed Python modules visible in this venv.
+        # If imports get shadowed, run ROS CLIs with system Python (e.g. `python3 -m ros2cli`).
         run_cmd uv venv --seed --system-site-packages --python python3 "${VENV_DIR}"
     fi
 
@@ -970,15 +1231,15 @@ install_pip() {
     log_info "Installing pip-audit into venv for vulnerability scanning (best-effort)..."
     run_cmd uv pip install --python "${VENV_DIR}/bin/python" --upgrade pip-audit || log_warn "Failed to install pip-audit; continuing without audit"
 
-    if [[ -f "${SCRIPT_DIR}/requirements-ros2.txt" ]]; then
-        log_info "Installing pip packages from requirements-ros2.txt using uv..."
+    if [[ -f "${REQUIREMENTS_FILE}" ]]; then
+        log_info "Installing pip packages from ${REQUIREMENTS_FILE} using uv..."
 
-        # Try guarded installation with hashes first for reproducibility/security
-        if run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv pip install --python "${VENV_DIR}/bin/python" --require-hashes -r "${SCRIPT_DIR}/requirements-ros2.txt"; then
+        if requirements_have_hashes "${REQUIREMENTS_FILE}"; then
+            run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv pip install --python "${VENV_DIR}/bin/python" --require-hashes -r "${REQUIREMENTS_FILE}"
             log_info "Installed packages using --require-hashes"
         else
-            log_warn "--require-hashes install failed (requirements may not be hashed). Falling back to unhashed install."
-            run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv pip install --python "${VENV_DIR}/bin/python" -r "${SCRIPT_DIR}/requirements-ros2.txt"
+            log_warn "${REQUIREMENTS_FILE} is not fully hash-pinned; installing without --require-hashes."
+            run_cmd env UV_EXCLUDE_NEWER="${UV_EXCLUDE_NEWER}" uv pip install --python "${VENV_DIR}/bin/python" -r "${REQUIREMENTS_FILE}"
         fi
 
         # Run vulnerability scan (best-effort) using pip-audit installed into the venv
@@ -994,13 +1255,13 @@ install_pip() {
         fi
 
     else
-        log_warn "requirements-ros2.txt not found! Skipping pip packages."
+        log_warn "${REQUIREMENTS_FILE} not found! Skipping pip packages."
     fi
 
     # Optional: make 'pip' point to 'uv pip' for interactive usage (opt-in)
     if $SET_PIP_ALIAS && $MODIFY_BASHRC && ! $DRY_RUN; then
-        bashrc_append 'alias pip="uv pip"'
-        log_info "Added alias pip='uv pip' to ~/.bashrc (enabled via --pip-alias)"
+        bashrc_append 'alias pip='\''echo -e "\033[0;36m* pip aliased to uv pip. To use system pip, use \033[1mcommand pip\033[0m" && uv pip'\'''
+        log_info "Added alias pip='uv pip' (with reminder) to ~/.bashrc"
     fi
 
     bashrc_append "source ${VENV_DIR}/bin/activate"
@@ -1012,20 +1273,26 @@ install_pip() {
 post_install() {
     log_step "Final Summary"
 
-    if [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
+    if grep -qi microsoft /proc/version 2>/dev/null; then
         log_info "Detected WSL2 — install latest Windows GPU drivers + restart WSL for best performance."
     fi
 
     log_success "Installation complete! See the wiki for next steps:"
-    log_info "  - Verify your install: http://localhost:4321/onboarding/verify"
-    log_info "  - First flight test:   http://localhost:4321/onboarding/px4-test"
+    if curl -fsS --max-time 2 http://localhost:4321/ >/dev/null 2>&1; then
+        log_info "  - Verify your install: http://localhost:4321/onboarding/verify"
+        log_info "  - First flight test:   http://localhost:4321/onboarding/px4-test"
+    else
+        log_info "  - Verify your install: /onboarding/verify (start docs with: npm run dev)"
+        log_info "  - First flight test:   /onboarding/px4-test (start docs with: npm run dev)"
+    fi
     echo ""
 }
 
 # ─── Main ────────────────────────────────────────────────────────────────────
-log_info "Starting robotics-setup.sh overhaul..."
+log_info "Starting robotics setup..."
 START_TIME=$(date +%s)
 
+install_system_base
 $INSTALL_ROS_BASE && install_ros_base
 $INSTALL_ROS      && install_ros_desktop
 $INSTALL_GAZEBO   && install_gazebo

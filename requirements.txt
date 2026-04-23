@@ -19,6 +19,11 @@ pyquaternion
 mavsdk
 pymavlink
 
+# Testing & Quality Assurance
+pytest
+pytest-cov
+pre-commit
+
 # Build Tools & Generators
 # NOTE: empy must be version 3.x for PX4 compatibility
 empy==3.3.4

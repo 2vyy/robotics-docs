@@ -1,0 +1,93 @@
+---
+title: Step 3 - Verify your install
+sidebar:
+  order: 4
+---
+
+Before going further, let's make sure everything from [Step 2](./ros-install) actually works. Open a fresh terminal (or run `source ~/.bashrc`) so all the new environment variables are loaded, then work through each check.
+
+:::tip If something fails
+Don't panic. Check the [Troubleshooting](./troubleshooting) section. Most issues are a missing `source` command or a typo.
+:::
+
+#### 3.1 - ROS 2
+
+```bash
+# Should print a version number like "ros2 0.x.y"
+ros2 --version
+```
+
+If you see `ros2: command not found`, ROS 2 isn't sourced. Run `source /opt/ros/jazzy/setup.bash` and try again. If that fixes it, make sure the line is in your `~/.bashrc` (see [Step 2](./ros-install)).
+
+#### 3.2 - Colcon
+
+```bash
+# Should print a version number
+colcon version-check
+```
+
+`colcon` is how you'll build every ROS 2 workspace. If this fails, re-run the dev tools install from [Step 2](./ros-install).
+
+#### 3.3 - Gazebo
+
+```bash
+# Should open a 3D window with some shapes (close with Ctrl+C)
+gz sim shapes.sdf
+```
+
+If Gazebo doesn't open or you get a segfault, it's often a GPU driver issue — especially on WSL2 or VMs. Check that your graphics drivers are up to date. On WSL2, make sure you've installed the latest GPU driver on the Windows side.
+
+:::info No display / headless server?
+If you're running on a remote server or container without a monitor, Gazebo's GUI won't launch. That's expected. You can still run headless simulations later with `gz sim -s` (server-only mode).
+:::
+
+#### 3.4 - PX4 SITL
+
+```bash
+# Check that the PX4 binary exists
+ls ~/PX4-Autopilot/build/px4_sitl_default/bin/px4
+```
+
+If the file is there, PX4 built successfully. You don't need to launch it right now — we'll do a full flight test in [Step 5](./px4-test).
+
+#### 3.5 - Micro XRCE-DDS Agent
+
+```bash
+# Should print help/usage text
+MicroXRCEAgent --help
+```
+
+If you get `command not found`, the agent may not be in your library path. Try running `sudo ldconfig /usr/local/lib/` and then try again.
+
+#### 3.6 - px4_msgs workspace
+
+```bash
+# Should list px4_msgs and px4_ros_com among other packages
+ros2 pkg list | grep px4
+```
+
+If nothing shows up, your workspace isn't sourced. Run `source ~/ros2_ws/install/setup.bash` and try again.
+
+#### 3.7 - Python venv
+
+```bash
+# Should show your venv path, not /usr/bin/python3
+which python3
+
+# Quick sanity check that key packages import
+python3 -c "import numpy, cv2, mavsdk, rclpy; print('All imports OK')"
+```
+
+If `which python3` points to `/usr/bin/python3` instead of `~/ros2_venv/bin/python3`, your venv isn't activated. Run `source ~/ros2_venv/bin/activate`.
+
+**Checklist:**
+
+If everything above passed, you're in great shape:
+
+- [x] `ros2 --version` → prints a version
+- [x] `colcon version-check` → prints a version
+- [x] `gz sim shapes.sdf` → opens a 3D window
+- [x] PX4 binary exists at `~/PX4-Autopilot/build/px4_sitl_default/bin/px4`
+- [x] `MicroXRCEAgent --help` → prints usage text
+- [x] `ros2 pkg list | grep px4` → shows px4_msgs
+- [x] `python3 -c "import numpy, cv2, mavsdk, rclpy"` → no errors
