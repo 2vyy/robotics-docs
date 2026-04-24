@@ -21,7 +21,7 @@ This document is the contract for the modular installer (`install/main.sh` and `
 
 ## TUI (plan option B)
 
-- If **no arguments** and **stdin is a TTY**, an interactive TUI runs first (same flow as the legacy script).
+- If **no arguments** and **stdin is a TTY**, an interactive TUI runs first (same flow as the legacy script). Plain `curl … | bash` would leave stdin as a pipe, so **`bootstrap.sh` runs `main.sh` with `</dev/tty`** when `/dev/tty` is available so the TUI still works from a one-liner.
 - If stdin is **not** a TTY (e.g. `curl \| bash`), defaults stay **full install** (`INSTALL_ROS`, `INSTALL_GAZEBO`, `INSTALL_PX4`, `INSTALL_PIP` all true) with a short countdown before starting.
 
 ## TTY phase headers

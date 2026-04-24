@@ -1,7 +1,7 @@
 # Modular robotics installer
 
 - **[BEHAVIOR.md](./BEHAVIOR.md)** — Ordered phases, flags, idempotency, and TUI behavior (contract for contributors).
-- **`bootstrap.sh`** — Intended for `curl | bash`: downloads this directory from GitHub raw (pinned ref) into a temp dir and runs `main.sh`.
+- **`bootstrap.sh`** — Intended for `curl | bash`: downloads this directory from GitHub raw (pinned ref) into a temp dir and runs `main.sh`. It attaches **`</dev/tty`** when possible so the interactive **TUI** still works (plain `curl | bash` would otherwise leave stdin as a pipe).
 - **`main.sh`** — Entrypoint when you already have the repo cloned; sources `lib/*.sh` in order.
 - **`lib/08-phase-verify.sh`** — After each phase, quick smoke checks (see [BEHAVIOR.md](./BEHAVIOR.md)).
 - **TTY** — If stdout is a terminal *before* logging is wired through `tee`, `ROBOTICS_CLI_TTY=1` and each phase prints an extra banner plus bullet “plan” lines.

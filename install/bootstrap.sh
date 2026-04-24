@@ -63,4 +63,10 @@ for rel in \
 done
 
 chmod +x "${ROOT}/main.sh"
-bash "${ROOT}/main.sh" "$@"
+# curl | bash leaves stdin as a pipe (not a TTY), so the component TUI would never run.
+# When a real terminal is available, attach the keyboard to main.sh so launch_tui can read keys.
+if [[ -r /dev/tty ]] && { [[ -t 1 ]] || [[ -t 2 ]]; }; then
+	bash "${ROOT}/main.sh" "$@" </dev/tty
+else
+	bash "${ROOT}/main.sh" "$@"
+fi

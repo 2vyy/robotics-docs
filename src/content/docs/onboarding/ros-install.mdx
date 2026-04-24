@@ -17,6 +17,10 @@ This downloads a tiny **bootstrap** script from GitHub, pulls the rest of the in
 curl -fsSL "https://raw.githubusercontent.com/2vyy/robotics-docs/main/install/bootstrap.sh" | bash
 ```
 
+:::tip Interactive picker (TUI) from `curl | bash`
+A pipe is not a keyboard: the installer only shows the **component TUI** when standard input is a real terminal. **`bootstrap.sh` fixes this** by running `main.sh` with `</dev/tty` when possible, so the one-liner above can still open the TUI in a normal desktop terminal. Headless SSH without a TTY skips the TUI and uses the default full install (or pass flags with `bash -s --`).
+:::
+
 Pin the ref (examples):
 
 ```bash

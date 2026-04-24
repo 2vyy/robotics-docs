@@ -127,6 +127,7 @@ source "${LIB}/70-python.sh"
 # shellcheck source=lib/90-post-install.sh
 source "${LIB}/90-post-install.sh"
 
+# TUI needs a real keyboard TTY on stdin (not a pipe). bootstrap.sh re-attaches </dev/tty when you use curl|bash.
 if [[ $# -eq 0 ]] && [[ -t 0 ]]; then
 	launch_tui
 else
