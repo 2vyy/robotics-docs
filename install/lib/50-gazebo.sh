@@ -2,7 +2,9 @@
 
 install_gazebo() {
 	# shellcheck source=/dev/null
-	source "/opt/ros/${ROS_DISTRO}/setup.bash" 2>/dev/null || true
+	if ! source "/opt/ros/${ROS_DISTRO}/setup.bash" 2>/dev/null; then
+		log_warn "Sourcing /opt/ros/${ROS_DISTRO}/setup.bash failed; Gazebo apt steps may still work in a fresh shell."
+	fi
 
 	if is_apt_installed "ros-${ROS_DISTRO}-ros-gz"; then
 		log_info "ros-${ROS_DISTRO}-ros-gz already installed ✓"

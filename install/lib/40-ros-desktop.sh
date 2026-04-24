@@ -8,5 +8,7 @@ install_ros_desktop() {
 	fi
 	bashrc_append "source /opt/ros/${ROS_DISTRO}/setup.bash"
 	# shellcheck source=/dev/null
-	source "/opt/ros/${ROS_DISTRO}/setup.bash" 2>/dev/null || true
+	if ! source "/opt/ros/${ROS_DISTRO}/setup.bash" 2>/dev/null; then
+		log_warn "Sourcing /opt/ros/${ROS_DISTRO}/setup.bash failed or returned non-zero; continuing (ROS may still work in a new shell)."
+	fi
 }

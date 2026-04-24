@@ -27,6 +27,8 @@ source "${LIB}/00-common.sh"
 robotics_require_ubuntu_24_04 || exit 1
 
 LOGFILE="${ROBOTICS_LOG_FILE:-$HOME/ros2-jazzy-install.log}"
+export LOGFILE
+export ROBOTICS_LOG_FILE="$LOGFILE"
 exec > >(tee -a "$LOGFILE") 2>&1
 
 # shellcheck source=lib/08-phase-verify.sh
@@ -235,6 +237,7 @@ robotics_run_preflight
 verify_phase_preflight
 
 log_info "Starting robotics setup..."
+ROBOTICS_INSTALL_BEGAN=1
 START_TIME=$(date +%s)
 
 robotics_phase_begin "0" "System update and locale" \

@@ -31,6 +31,12 @@ robotics_on_exit() {
 		log_error "You can safely re-run this script — it is idempotent."
 		log_error "See the wiki: /onboarding/troubleshooting"
 	fi
+	# If we started the install phases but never reached post_install(), explain where to look.
+	if [[ "${ROBOTICS_INSTALL_BEGAN:-0}" == "1" && "${ROBOTICS_INSTALL_COMPLETE:-0}" != "1" ]]; then
+		log_warn "The installer stopped before the final summary block (exit ${exit_code})."
+		log_warn "Scroll up for the last [INFO]/[ERROR] line, or inspect the full transcript:"
+		log_warn "  ${LOGFILE:-${ROBOTICS_LOG_FILE:-$HOME/ros2-jazzy-install.log}}"
+	fi
 }
 
 robotics_restore_saved_exit_trap() {
@@ -109,11 +115,20 @@ run_cmd() {
 
 bashrc_append() {
 	local line="$1"
-	if $MODIFY_BASHRC && ! $DRY_RUN; then
-		if ! grep -qxF "$line" ~/.bashrc 2>/dev/null; then
-			echo "$line" >>~/.bashrc
-			log_info "Added to ~/.bashrc: $line"
+	local rcf="${HOME}/.bashrc"
+	if ! $MODIFY_BASHRC || $DRY_RUN; then
+		return 0
+	fi
+	if [[ ! -f "$rcf" ]] && ! touch "$rcf" 2>/dev/null; then
+		log_warn "Cannot create ${rcf}; add this line yourself: ${line}"
+		return 0
+	fi
+	if ! grep -qxF "$line" "$rcf" 2>/dev/null; then
+		if ! echo "$line" >>"$rcf" 2>/dev/null; then
+			log_warn "Cannot append to ${rcf} (permissions or disk?); add manually: ${line}"
+			return 0
 		fi
+		log_info "Added to ~/.bashrc: $line"
 	fi
 }
 

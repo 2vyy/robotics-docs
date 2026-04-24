@@ -45,4 +45,5 @@ post_install() {
 		log_info "  PX4 sim: same repo — /onboarding/px4-test"
 	fi
 	echo ""
+	ROBOTICS_INSTALL_COMPLETE=1
 }

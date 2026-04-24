@@ -44,7 +44,9 @@ install_px4() {
 		log_info "Building ROS 2 workspace..."
 		if [[ -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]]; then
 			# shellcheck source=/dev/null
-			source "/opt/ros/${ROS_DISTRO}/setup.bash"
+			if ! source "/opt/ros/${ROS_DISTRO}/setup.bash" 2>/dev/null; then
+				log_warn "Could not source /opt/ros/${ROS_DISTRO}/setup.bash before colcon; build may fail—open a new terminal and re-run if needed."
+			fi
 		fi
 		run_cmd colcon build --symlink-install \
 			--base-paths "${WS_DIR}/src" \
